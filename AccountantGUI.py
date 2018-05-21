@@ -106,9 +106,38 @@ class AccountantGUI(Gtk.Window):
         self.transaction_scrollableTreelist.add(self.transaction_treeview)
 #        self.monthlyHours_scrollableTreelist.add(self.monthlyHours_treeview)
 
+
+
+        self.filterBox = Gtk.Box(spacing=6)
+        self.grid.attach(self.filterBox , 0 , 15, 10 ,2)
+        filteringLabel = Gtk.Label('Filtering Tools')
+        self.filterBox.pack_start(filteringLabel, True, True, 0)
+        self.button1 = Gtk.Button(label="Hello")
+#        self.button1.connect("clicked", self.on_button1_clicked)
+        self.filterBox.pack_start(self.button1, True, True, 0)
+
+        self.button2 = Gtk.Button(label="Goodbye")
+#        self.button2.connect("clicked", self.on_button2_clicked)
+        self.filterBox.pack_start(self.button2, True, True, 0)
+        
+        self.filterBox.categoryCheckButtons = list()
+        for str_cat in Transaction.lstr_categoryLabels:
+            cb = Gtk.CheckButton(str_cat)
+            self.filterBox.categoryCheckButtons.append(cb)
+            self.filterBox.pack_start(cb, True, True, 0)
+            cb.set_active(True)
+
+        #self.btn1.connect("toggled", self.on_checked)
+
+        # self.grid.attach(filteringLabel , 0 , 15, 2 ,2)
+        # self.grid.attach_next_to(plotTotalButton, filteringLabel, Gtk.PositionType.BOTTOM, 1, 1)
+        
+        self.plotBox = Gtk.Box(spacing=6)
         plotLabel = Gtk.Label('Plotting Tools')
-        self.grid.attach(plotLabel , 0 , 15, 2 ,2)
-        self.grid.attach_next_to(plotTotalButton, plotLabel, Gtk.PositionType.BOTTOM, 1, 1)
+        self.grid.attach(self.plotBox , 0 , 18, 10 ,2)
+        self.plotBox.pack_start(plotLabel,True,True,0)
+        self.plotBox.pack_start(plotTotalButton,True,True,0)
+
 
         self.show_all()
 
