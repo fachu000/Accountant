@@ -12,7 +12,6 @@ class AccountantGUI(Gtk.Window):
 
     def __init__(self,l_transactions):
 
-        print('peixe')
         Gtk.Window.__init__(self, title="Accountant GUI")
         self.set_border_width(10)
         self.l_transactions = l_transactions
@@ -24,7 +23,7 @@ class AccountantGUI(Gtk.Window):
         self.add(self.grid)
 
         # List store for transactions
-        self.transaction_liststore = Gtk.ListStore(str, str, str,str,str,str,str)
+        self.transaction_liststore = Gtk.ListStore(str, str, str,str,str,str,str,str)
         self.fillTransactionListStore()
 
         # Treeview for transactions
@@ -33,7 +32,7 @@ class AccountantGUI(Gtk.Window):
         self.selectedTransactionTreeIter = None
         self.select.connect("changed", self.on_tree_selection_changed)
 
-        for i, column_title in enumerate(["Date", "Amount","Category", "Description","Account","Purchase date","Interest date"]):
+        for i, column_title in enumerate(["Date", "Amount","Category", "Description","Account","Purchase date","Interest date","Comment"]):
             renderer = Gtk.CellRendererText()
             column = Gtk.TreeViewColumn(column_title, renderer, text=i)
             self.transaction_treeview.append_column(column)
@@ -49,13 +48,12 @@ class AccountantGUI(Gtk.Window):
         #     column = Gtk.TreeViewColumn(column_title, renderer, text=i)
         #     self.monthlyHours_treeview.append_column(column)
 
-        # #creating buttons to assign events to projects
-        # self.l_projectAssignmentButtons = list()
-        # for projectLabel in Calendar.lstr_projectLabels:
-        #     button = Gtk.Button(projectLabel)
-        #     self.l_projectAssignmentButtons.append(button)
-        #     button.connect("clicked",
-        #     self.projectAssignmentButtonCallback)
+        #creating buttons to assign transactions to categories
+        self.l_categoryAssignmentButtons = list()
+        for categoryLabel in Transaction.lstr_categoryLabels:
+            button = Gtk.Button(categoryLabel)
+            self.l_categoryAssignmentButtons.append(button)
+            button.connect("clicked",self.categoryAssignmentButtonCallback)
 
         # #creating buttons in top row
         saveButton = Gtk.Button('Save')
@@ -84,15 +82,14 @@ class AccountantGUI(Gtk.Window):
         self.grid.attach( autoAssignButton , 6, 0, 2, 1)
         #self.grid.attach( printAssignmentsButton , 8, 0, 2, 1)
         self.grid.attach(self.transaction_scrollableTreelist, 0, 1, 12, 10)
-#        self.grid.attach_next_to(self.l_projectAssignmentButtons[0], self.transaction_scrollableTreelist, Gtk.PositionType.BOTTOM, 1, 1)
-        # for i, button in enumerate(self.l_projectAssignmentButtons[1:]):
-        #     self.grid.attach_next_to(button, self.l_projectAssignmentButtons[i], Gtk.PositionType.RIGHT, 1, 1)
+        self.grid.attach_next_to(self.l_categoryAssignmentButtons[0], self.transaction_scrollableTreelist, Gtk.PositionType.BOTTOM, 1, 1)
+        for i, button in enumerate(self.l_categoryAssignmentButtons[1:]):
+            self.grid.attach_next_to(button, self.l_categoryAssignmentButtons[i], Gtk.PositionType.RIGHT, 1, 1)
         # self.grid.attach(self.monthlyHours_scrollableTreelist, 0, 12, 12, 10)
         self.transaction_scrollableTreelist.add(self.transaction_treeview)
 #        self.monthlyHours_scrollableTreelist.add(self.monthlyHours_treeview)
 
         self.show_all()
-        print('peixe')
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # FUNCTIONS TO MANIPULATE THE LIST STORE
@@ -104,6 +101,10 @@ class AccountantGUI(Gtk.Window):
             transaction =  self.l_transactions[transactionIndex]
             row = AccountantGUI.transactionToStoreRowList(transaction)
             self.transaction_liststore.append(row)
+
+    def updateStoreRows(self):
+        for i_rowIndex in range(0,len(self.l_transactions)):
+            self.updateStoreRow(i_rowIndex)
 
     def updateStoreRow(self,i_rowIndex):
         """Updates the i_rowIndex-th row of the table"""
@@ -132,7 +133,8 @@ class AccountantGUI(Gtk.Window):
         str_amount = str(transaction.f_amount)
         str_category = transaction.str_category
         str_account = transaction.str_account
-        return [str_date,str_amount,str_category,str_description,str_account,str_purchaseDate,str_interestDate]
+        str_comment = transaction.str_comment
+        return [str_date,str_amount,str_category,str_description,str_account,str_purchaseDate,str_interestDate,str_comment]
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # CALLBACK FUNCTIONS
@@ -219,12 +221,10 @@ class AccountantGUI(Gtk.Window):
 
     def autoAssignButtonCallback(self,widget):
 
-        self.calendar.autoAssignEvents()
-        # Update event table
-        for eventIndex in range(0,len(self.calendar.l_CalEvents)):
-            self.updateStoreRow(eventIndex)
-        # Update table of monthly events 
-        self.updateMonthlyHours_liststore()
+        Transaction.autoAssignTransactionsToCategory(self.l_transactions)
+
+        self.updateStoreRows()
+
 
     def printAssignmentsButtonCallback(self,widget):
 
@@ -235,24 +235,24 @@ class AccountantGUI(Gtk.Window):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
             print("You selected", model[treeiter][0])        
-        self.selectedEventTreeIter = treeiter
+        self.selectedTransactionTreeIter = treeiter
 #        print('path = ',type(self.selectedEventTreeIter))
 
 
-    def projectAssignmentButtonCallback(self, widget):
-        """This function sets the property str_project of the selected
-        event to the value of the label of the button."""  
+    def categoryAssignmentButtonCallback(self, widget):
+        """This function sets the property str_category of the selected
+        transaction to the value of the label of the button."""  
 
-        str_selectedProject = widget.get_label()
-        treeiter = self.selectedEventTreeIter
+        str_selectedCategory = widget.get_label()
+        treeiter = self.selectedTransactionTreeIter
         if treeiter == None:
             return
-        selectedEventIndex = self.events_liststore.get_path(treeiter).get_indices()[0]
-        self.calendar.l_CalEvents[selectedEventIndex].str_project = str_selectedProject
-        self.calendar.l_CalEvents[selectedEventIndex].print()
-        self.updateStoreRow(selectedEventIndex)
+        selectedTransactionIndex = self.transaction_liststore.get_path(treeiter).get_indices()[0]
+        self.l_transactions[selectedTransactionIndex].str_category = str_selectedCategory
+#        self.calendar.l_CalEvents[selectedEventIndex].print()
+        self.updateStoreRow(selectedTransactionIndex)
         #self.calendar.printMonthlyHoursPerProject()
-        self.updateMonthlyHours_liststore()
+#        self.updateMonthlyHours_liststore()
 
 
 #        self.events_liststore

@@ -3,9 +3,8 @@
 # PROGRAM TO KEEP PERSONAL ACCOUNTS
 #
 # NEXT STEPS:
-# - add buttons to load/save and link them to the corresponding functions
-# - add functionality to add comments to a transaction
 # - Automatic classification of transactions into categories. If a transaction has the same description field as an already classified transaction, then it is assigned to the same category. If there already exist multiple classified transactions with the same description and different category, then the transaction at hand should not be automatically classified. 
+# - add functionality to add comments to a transaction
 #
 # GRAPHICAL INTERFACE:
 #     -On top: buttons to load/save Transaction lists or to read files
@@ -47,12 +46,15 @@ from gi.repository import Gtk
 # quit()
 
 
+# load default list
+l_transactions = Transaction.loadTransactionList('../data/default.pk')
+
 print('here we go')
 
 
 
-#win = AccountantGUI(l_transactions)
-win = AccountantGUI([])
+win = AccountantGUI(l_transactions)
+#win = AccountantGUI([])
 win.connect("delete-event", Gtk.main_quit)
 win.show_all()
 Gtk.main()

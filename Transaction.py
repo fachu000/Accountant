@@ -5,7 +5,7 @@ import pickle
 class Transaction:
     """An object of this class describes a bank transaction."""
     
-    str_categories = ['FUN','FOOD','CAR','MUSIC','FAMILY','HOME','ANIMALS','WORK']
+    lstr_categoryLabels = ['FUN','FOOD','CAR','MUSIC','FAMILY','HOME','ANIMALS','WORK']
     
     def __init__(self):
         self.d_date = []
@@ -15,6 +15,7 @@ class Transaction:
         self.f_amount = 0 # >0 means incoming to the account
         self.str_account = '' 
         self.str_category = ''
+        self.str_comment = ''
 
         
     def readTransactionFromString(str_csv,str_format):
@@ -124,6 +125,7 @@ class Transaction:
         print('AMOUNT: ',self.f_amount)
         print('ACCOUNT: ',self.str_account)
         print('CATEGORY: ',self.str_category)
+        print('COMMENT: ',self.str_comment)
         print('------------------------------')
 
 
@@ -193,3 +195,32 @@ class Transaction:
         l_transactions = sorted(l_transactions,key=lambda transaction:transaction.d_date)
 
         return l_transactions
+
+
+    def autoAssignTransactionsToCategory(l_transactions):
+        
+        for transaction in l_transactions:
+            Transaction.autoAssignTransactionToCategory(l_transactions,transaction)
+
+    def autoAssignTransactionToCategory(l_transactions,transactionToBeAssigned):
+        """Assigns transaction to a category C if each transactions in
+        <l_transactions> with the same description as <transaction> is
+        assigned either to C or not assigned to any category."""
+
+        if transactionToBeAssigned.str_category:
+            return
+        category = ''
+        for tran in l_transactions:
+            if tran.str_description == transactionToBeAssigned.str_description:
+
+                if category:
+                    if (tran.str_category) and (category != tran.str_category):
+                        return # since there are two transactions with the
+                           # same description as
+                           # <transactionToBeAssigned> and they are
+                           # assigned to different categories.
+                else:
+                    category = tran.str_category
+
+        transactionToBeAssigned.str_category = category
+
