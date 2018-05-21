@@ -2,7 +2,14 @@
 #
 # PROGRAM TO KEEP PERSONAL ACCOUNTS
 #
+# REQUIREMENTS (install through synaptic):
+#    - pygobject
+#    - matplotlib
+#
 # NEXT STEPS:
+#     - Plots
+#        - balance vs time (continue in plotTotalButtonCallback by first plotting just transaction amount over time)
+#        - the amount of the filtered transactions vs time
 
 #
 # GRAPHICAL INTERFACE:
@@ -10,10 +17,7 @@
 #     -Below: text boxes to specify filters (which transactions to display)
 #     -Below: list of transactions that pass the filters
 #     -Below: one button per category-- used to assign the selected event to a category. We can use a similar code as for readCalendar. 
-#     -Below: buttons to plot, e.g. 
-        # - balance vs time
-        # - the amount of the filtered transactions vs time
-#
+#     -Below: buttons to plot#
 
 
 # For Python + GTK, see:  https://python-gtk-3-tutorial.readthedocs.io/en/latest/introduction.html

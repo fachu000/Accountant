@@ -1,6 +1,12 @@
 
 from datetime import datetime,timedelta,time,date
+import matplotlib.pyplot as plt
 import pickle
+
+import datetime as dt
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
 
 class Transaction:
     """An object of this class describes a bank transaction."""
@@ -223,3 +229,44 @@ class Transaction:
 
         transactionToBeAssigned.str_category = category
 
+    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
+    # FUNCTIONS TO OBTAIN FIGURES
+    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
+
+
+
+    def plotTotalOverTime(l_transactions):
+
+      
+        l_timeAxis = [None]*(len(l_transactions)+1)
+        l_timeAxis[0] = l_transactions[0].d_date
+        l_total = [None]*(len(l_transactions)+1)
+        l_total[0] = 0
+        for indTransaction in range(0,len(l_transactions)):
+            l_total[indTransaction+1] =l_total[indTransaction] + l_transactions[indTransaction].f_amount
+            l_timeAxis[indTransaction+1] = l_transactions[indTransaction].d_date
+
+
+        dates = ['01/01/1991','01/03/1991','01/04/1991']
+
+        dates = [d.strftime('%Y/%m/%d') for d in l_timeAxis]
+        x = [dt.datetime.strptime(d,'%Y/%m/%d').date() for d in dates]
+        y = l_total # range(len(x)) # many thanks to Kyss Tao for setting me straight here
+
+
+
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d'))
+        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+        plt.plot(x,y,'ro-')
+        plt.gcf().autofmt_xdate()
+        plt.show()
+        return
+
+
+        
+        
+        plt.plot(l_timeAxis,l_total)
+        plt.ylabel('some numbers')
+        plt.show()
+
+        return 

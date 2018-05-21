@@ -74,6 +74,9 @@ class AccountantGUI(Gtk.Window):
         addCommentButton = Gtk.Button('Add Comment')
         addCommentButton.connect("clicked", self.addCommentButtonCallback)
 
+        plotTotalButton = Gtk.Button('Plot Total')
+        plotTotalButton.connect("clicked", self.plotTotalButtonCallback)
+
         # printAssignmentsButton = Gtk.Button('Print Assignments')
         # printAssignmentsButton.connect("clicked", self.printAssignmentsButtonCallback)
 
@@ -83,6 +86,9 @@ class AccountantGUI(Gtk.Window):
         self.transaction_scrollableTreelist.set_vexpand(True)
         # self.monthlyHours_scrollableTreelist = Gtk.ScrolledWindow()
         # self.monthlyHours_scrollableTreelist.set_vexpand(True)
+
+
+
 
 
         # Place widgets in the grid
@@ -99,6 +105,10 @@ class AccountantGUI(Gtk.Window):
         # self.grid.attach(self.monthlyHours_scrollableTreelist, 0, 12, 12, 10)
         self.transaction_scrollableTreelist.add(self.transaction_treeview)
 #        self.monthlyHours_scrollableTreelist.add(self.monthlyHours_treeview)
+
+        plotLabel = Gtk.Label('Plotting Tools')
+        self.grid.attach(plotLabel , 0 , 15, 2 ,2)
+        self.grid.attach_next_to(plotTotalButton, plotLabel, Gtk.PositionType.BOTTOM, 1, 1)
 
         self.show_all()
 
@@ -296,6 +306,13 @@ class AccountantGUI(Gtk.Window):
 
 #        self.events_liststore
         
+
+
+    def plotTotalButtonCallback(self,widget):
+        print('We will plot something')
+
+        Transaction.plotTotalOverTime(self.l_transactions)
+
 
 #############################
 
