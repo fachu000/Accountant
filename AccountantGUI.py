@@ -21,6 +21,7 @@ class AccountantGUI(Gtk.Window):
         Gtk.Window.__init__(self, title="Accountant GUI")
         self.set_border_width(10)
         self.l_transactions = l_transactions
+        self.l_transactionsFiltered = [True]*len(self.l_transactions)
 
         #Setting up the self.grid in which the elements are to be positioned
         self.grid = Gtk.Grid()
@@ -88,9 +89,6 @@ class AccountantGUI(Gtk.Window):
         # self.monthlyHours_scrollableTreelist.set_vexpand(True)
 
 
-
-
-
         # Place widgets in the grid
         self.grid.attach( saveButton , 0, 0, 2, 1)
         self.grid.attach( loadButton , 2, 0, 2, 1)
@@ -111,10 +109,12 @@ class AccountantGUI(Gtk.Window):
         self.filterBox = Gtk.Box(spacing=6)
         self.grid.attach(self.filterBox , 0 , 15, 10 ,2)
         filteringLabel = Gtk.Label('Filtering Tools')
+
+        ################# FILTER BOX #############################
         self.filterBox.pack_start(filteringLabel, True, True, 0)
-        self.button1 = Gtk.Button(label="Hello")
-#        self.button1.connect("clicked", self.on_button1_clicked)
-        self.filterBox.pack_start(self.button1, True, True, 0)
+        self.filterBox.filterButton = Gtk.Button(label="Filter")
+        self.filterBox.filterButton.connect("clicked", self.filterButtonCallBack)
+        self.filterBox.pack_start(self.filterBox.filterButton, True, True, 0)
 
         self.button2 = Gtk.Button(label="Goodbye")
 #        self.button2.connect("clicked", self.on_button2_clicked)
@@ -127,11 +127,17 @@ class AccountantGUI(Gtk.Window):
             self.filterBox.pack_start(cb, True, True, 0)
             cb.set_active(True)
 
+        cb = Gtk.CheckButton('No Category')
+        self.filterBox.categoryCheckButtons.append(cb)
+        self.filterBox.pack_start(cb, True, True, 0)
+        cb.set_active(True)
+
+
         #self.btn1.connect("toggled", self.on_checked)
 
         # self.grid.attach(filteringLabel , 0 , 15, 2 ,2)
         # self.grid.attach_next_to(plotTotalButton, filteringLabel, Gtk.PositionType.BOTTOM, 1, 1)
-        
+        ################# PLOT BOX #############################        
         self.plotBox = Gtk.Box(spacing=6)
         plotLabel = Gtk.Label('Plotting Tools')
         self.grid.attach(self.plotBox , 0 , 18, 10 ,2)
@@ -150,6 +156,8 @@ class AccountantGUI(Gtk.Window):
 
         self.transaction_liststore.clear()
         for transactionIndex in range(0,len(self.l_transactions)):
+            if not self.l_transactionsFiltered[transactionIndex]:
+                continue
             transaction =  self.l_transactions[transactionIndex]
             row = AccountantGUI.transactionToStoreRowList(transaction,transactionIndex)
             self.transaction_liststore.append(row)
@@ -341,6 +349,30 @@ class AccountantGUI(Gtk.Window):
         print('We will plot something')
 
         Transaction.plotTotalOverTime(self.l_transactions)
+
+    def filterButtonCallBack(self,widget):
+
+        # Find active categories
+        l_activeCategories = {} #[None]*len(Transaction.lstr_categoryLabels)
+        for indCategory in range(0,len(self.filterBox.categoryCheckButtons)):
+            l_activeCategories[self.filterBox.categoryCheckButtons[indCategory].get_label()] = \
+                self.filterBox.categoryCheckButtons[indCategory].get_active()
+
+        print('now filter',l_activeCategories)
+        for indTransaction in range(0,len(self.l_transactions)):
+            if self.l_transactions[indTransaction].str_category:
+                if l_activeCategories[self.l_transactions[indTransaction].str_category]:
+                    self.l_transactionsFiltered[indTransaction] = True
+                else:
+                    self.l_transactionsFiltered[indTransaction] = False
+            else:
+                if l_activeCategories['No Category']:
+                    self.l_transactionsFiltered[indTransaction] = True
+                else:
+                    self.l_transactionsFiltered[indTransaction] = False
+
+
+        self.fillTransactionListStore()
 
 
 #############################
