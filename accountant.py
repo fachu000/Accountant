@@ -3,7 +3,7 @@
 # PROGRAM TO KEEP PERSONAL ACCOUNTS
 #
 # NEXT STEPS:
-# - add functionality to add comments to a transaction
+
 #
 # GRAPHICAL INTERFACE:
 #     -On top: buttons to load/save Transaction lists or to read files

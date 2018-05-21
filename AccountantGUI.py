@@ -38,7 +38,7 @@ class AccountantGUI(Gtk.Window):
         self.selectedTransactionTreeIter = None
         self.select.connect("changed", self.on_tree_selection_changed)
 
-        for i, column_title in enumerate(["Date", "Amount","Category", "Description","Account","Purchase date","Interest date","Comment"]):
+        for i, column_title in enumerate(["Date", "Amount","Category", "Description","Account","Comment","Purchase date","Interest date"]):
             renderer = Gtk.CellRendererText()
             column = Gtk.TreeViewColumn(column_title, renderer, text=i)
             column.set_sort_column_id(i)
@@ -71,8 +71,11 @@ class AccountantGUI(Gtk.Window):
         appendFromCSVFileButton.connect("clicked", self.appendFromCSVFileButtonCallback)
         autoAssignButton = Gtk.Button('Auto Assign')
         autoAssignButton.connect("clicked", self.autoAssignButtonCallback)
-        printAssignmentsButton = Gtk.Button('Print Assignments')
-        printAssignmentsButton.connect("clicked", self.printAssignmentsButtonCallback)
+        addCommentButton = Gtk.Button('Add Comment')
+        addCommentButton.connect("clicked", self.addCommentButtonCallback)
+
+        # printAssignmentsButton = Gtk.Button('Print Assignments')
+        # printAssignmentsButton.connect("clicked", self.printAssignmentsButtonCallback)
 
 
         #setting up the layout, putting the treeview in a scrollwindow, and the buttons in a row
@@ -87,6 +90,7 @@ class AccountantGUI(Gtk.Window):
         self.grid.attach( loadButton , 2, 0, 2, 1)
         self.grid.attach( appendFromCSVFileButton , 4, 0, 2, 1)
         self.grid.attach( autoAssignButton , 6, 0, 2, 1)
+        self.grid.attach( addCommentButton , 8, 0, 2, 1)
         #self.grid.attach( printAssignmentsButton , 8, 0, 2, 1)
         self.grid.attach(self.transaction_scrollableTreelist, 0, 1, 12, 10)
         self.grid.attach_next_to(self.l_categoryAssignmentButtons[0], self.transaction_scrollableTreelist, Gtk.PositionType.BOTTOM, 1, 1)
@@ -149,7 +153,7 @@ class AccountantGUI(Gtk.Window):
         str_category = transaction.str_category
         str_account = transaction.str_account
         str_comment = transaction.str_comment
-        return [str_date,str_amount,str_category,str_description,str_account,str_purchaseDate,str_interestDate,str_comment,i_indexInList]
+        return [str_date,str_amount,str_category,str_description,str_account,str_comment,str_purchaseDate,str_interestDate,i_indexInList]
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # CALLBACK FUNCTIONS
@@ -232,9 +236,33 @@ class AccountantGUI(Gtk.Window):
         self.updateStoreRows()
 
 
-    def printAssignmentsButtonCallback(self,widget):
+    def addCommentButtonCallback(self,widget):
 
-        self.calendar.printAssignments() 
+        treeiter = self.selectedTransactionTreeIter
+        if treeiter == None:
+            return
+        selectedTransactionIndex = self.transaction_liststore[treeiter][-1]
+
+        dialog = addCommentDialog(self,self.l_transactions[selectedTransactionIndex].str_comment)
+        response = dialog.run()
+
+        if response == Gtk.ResponseType.OK:
+            print("Adding comment ",dialog.entry.get_text())
+            self.l_transactions[selectedTransactionIndex].str_comment = dialog.entry.get_text()
+            self.updateStoreRows()
+
+
+        elif response == Gtk.ResponseType.CANCEL:
+            print("The Cancel button was clicked")
+
+        dialog.destroy()
+
+        return
+
+    # def printAssignmentsButtonCallback(self,widget):
+
+    #     self.calendar.printAssignments()
+        
 
 
     def on_tree_selection_changed(self,selection):
@@ -294,3 +322,24 @@ class DialogExample(Gtk.Dialog):
         print('psssss')
 #        return (response,str_filename,str_format,str_account)
         return response
+
+
+class addCommentDialog(Gtk.Dialog):
+
+    def __init__(self, parent,str_defaultText):
+        Gtk.Dialog.__init__(self, "Add a Comment", parent, 0,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+             Gtk.STOCK_OK, Gtk.ResponseType.OK))
+
+        self.set_default_size(150, 100)
+
+        label = Gtk.Label('Please type the comment')
+
+        box = self.get_content_area()
+        box.add(label)
+
+        self.entry = Gtk.Entry()
+        self.entry.set_text(str_defaultText)
+        box.pack_start(self.entry, True, True, 0)
+
+        self.show_all()
