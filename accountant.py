@@ -3,7 +3,6 @@
 # PROGRAM TO KEEP PERSONAL ACCOUNTS
 #
 # NEXT STEPS:
-# - Automatic classification of transactions into categories. If a transaction has the same description field as an already classified transaction, then it is assigned to the same category. If there already exist multiple classified transactions with the same description and different category, then the transaction at hand should not be automatically classified. 
 # - add functionality to add comments to a transaction
 #
 # GRAPHICAL INTERFACE:
@@ -47,6 +46,7 @@ from gi.repository import Gtk
 
 
 # load default list
+#l_transactions = Transaction.loadTransactionList('../data/test-list.pk')
 l_transactions = Transaction.loadTransactionList('../data/default.pk')
 
 print('here we go')

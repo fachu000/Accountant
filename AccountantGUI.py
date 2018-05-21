@@ -3,6 +3,12 @@
 from Transaction import Transaction
 
 
+# When the ListStore is sorted by pressing a column header, the
+# TreeIter that point to a row change as the row changes its
+# position. Thus, to know what is the transaction in
+# self.l_transactions associated with a certain row, we use the last
+# column of the ListStore, which contains now the index.
+
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -23,7 +29,7 @@ class AccountantGUI(Gtk.Window):
         self.add(self.grid)
 
         # List store for transactions
-        self.transaction_liststore = Gtk.ListStore(str, str, str,str,str,str,str,str)
+        self.transaction_liststore = Gtk.ListStore(str, str, str,str,str,str,str,str,int)
         self.fillTransactionListStore()
 
         # Treeview for transactions
@@ -35,6 +41,7 @@ class AccountantGUI(Gtk.Window):
         for i, column_title in enumerate(["Date", "Amount","Category", "Description","Account","Purchase date","Interest date","Comment"]):
             renderer = Gtk.CellRendererText()
             column = Gtk.TreeViewColumn(column_title, renderer, text=i)
+            column.set_sort_column_id(i)
             self.transaction_treeview.append_column(column)
 
         # # # List store for monthly hours
@@ -96,27 +103,35 @@ class AccountantGUI(Gtk.Window):
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
 
     def fillTransactionListStore(self):
-        
+        """Clears and fills the transaction ListStore."""
+
+        self.transaction_liststore.clear()
         for transactionIndex in range(0,len(self.l_transactions)):
             transaction =  self.l_transactions[transactionIndex]
-            row = AccountantGUI.transactionToStoreRowList(transaction)
+            row = AccountantGUI.transactionToStoreRowList(transaction,transactionIndex)
             self.transaction_liststore.append(row)
 
     def updateStoreRows(self):
-        for i_rowIndex in range(0,len(self.l_transactions)):
+        for i_rowIndex in range(0,len(self.transaction_liststore)):
             self.updateStoreRow(i_rowIndex)
 
     def updateStoreRow(self,i_rowIndex):
-        """Updates the i_rowIndex-th row of the table"""
-
-        rowList = AccountantGUI.transactionToStoreRowList(self.l_transactions[i_rowIndex])
+        """Updates the i_rowIndex-th row of the table (not necessarily the
+        i_rowIndex-th transaction)"""
 
         path = Gtk.TreePath.new_from_string(str(i_rowIndex))
         treeIter = self.transaction_liststore.get_iter(path)
+        i_indTransaction = self.transaction_liststore[treeIter][-1] # transaction
+                                                                    # index
+                                                                    # corresponding
+                                                                    # to
+                                                                    # that
+                                                                    # row.
+        rowList = AccountantGUI.transactionToStoreRowList(self.l_transactions[i_indTransaction],i_indTransaction)
         for colInd in range(0,len(rowList)):
             self.transaction_liststore[treeIter][colInd] = rowList[colInd]
                     
-    def transactionToStoreRowList(transaction):
+    def transactionToStoreRowList(transaction,i_indexInList):
         """Returns a list of strings. The n-th entry is the text to be
         displayed in the n-th column of the row corresponding to the
         Transaction <transaction>"""
@@ -134,7 +149,7 @@ class AccountantGUI(Gtk.Window):
         str_category = transaction.str_category
         str_account = transaction.str_account
         str_comment = transaction.str_comment
-        return [str_date,str_amount,str_category,str_description,str_account,str_purchaseDate,str_interestDate,str_comment]
+        return [str_date,str_amount,str_category,str_description,str_account,str_purchaseDate,str_interestDate,str_comment,i_indexInList]
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # CALLBACK FUNCTIONS
@@ -170,7 +185,6 @@ class AccountantGUI(Gtk.Window):
             print("Open clicked")
             print("File selected: " + dialog.get_filename())
             self.l_transactions = Transaction.loadTransactionList(dialog.get_filename())
-            self.transaction_liststore.clear()
             self.fillTransactionListStore()
 
         elif response == Gtk.ResponseType.CANCEL:
@@ -192,13 +206,6 @@ class AccountantGUI(Gtk.Window):
         dialog.destroy()
 
         return
-        self.calendar.appendFromCSVFile()
-
-        # Update event table
-        for eventIndex in range(0,len(self.calendar.l_CalEvents)):
-            self.updateStoreRow(eventIndex)
-        # Update table of monthly events 
-        self.updateMonthlyHours_liststore()
 
 
     def appendTransactionsFromDefaultCSVFiles(self):
@@ -213,7 +220,6 @@ class AccountantGUI(Gtk.Window):
 
         num_newTransactions = Transaction.combineListsOfTransactions(self.l_transactions,l_transactions_CSV)
         print('new transactions = ',num_newTransactions)
-        self.transaction_liststore.clear()
         self.fillTransactionListStore()
 
 
@@ -234,7 +240,7 @@ class AccountantGUI(Gtk.Window):
     def on_tree_selection_changed(self,selection):
         model, treeiter = selection.get_selected()
         if treeiter is not None:
-            print("You selected", model[treeiter][0])        
+            print("You selected", model[treeiter][3])        
         self.selectedTransactionTreeIter = treeiter
 #        print('path = ',type(self.selectedEventTreeIter))
 
@@ -247,10 +253,15 @@ class AccountantGUI(Gtk.Window):
         treeiter = self.selectedTransactionTreeIter
         if treeiter == None:
             return
-        selectedTransactionIndex = self.transaction_liststore.get_path(treeiter).get_indices()[0]
+#        selectedRowIndex = self.transaction_liststore.get_path(treeiter).get_indices()[0]
+        selectedTransactionIndex = self.transaction_liststore[treeiter][-1]
+#        print('here',self.transaction_liststore[treeiter][-1],self.transaction_liststore[treeiter][3])
+
+#        self.l_transactions[selectedTransactionIndex].print()
         self.l_transactions[selectedTransactionIndex].str_category = str_selectedCategory
 #        self.calendar.l_CalEvents[selectedEventIndex].print()
-        self.updateStoreRow(selectedTransactionIndex)
+#        self.updateStoreRow(selectedRowIndex)
+        self.updateStoreRows()
         #self.calendar.printMonthlyHoursPerProject()
 #        self.updateMonthlyHours_liststore()
 

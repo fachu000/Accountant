@@ -212,7 +212,6 @@ class Transaction:
         category = ''
         for tran in l_transactions:
             if tran.str_description == transactionToBeAssigned.str_description:
-
                 if category:
                     if (tran.str_category) and (category != tran.str_category):
                         return # since there are two transactions with the
