@@ -1,7 +1,7 @@
 
 
 from Transaction import Transaction
-
+from datetime import datetime,timedelta,time,date
 
 # When the ListStore is sorted by pressing a column header, the
 # TreeIter that point to a row change as the row changes its
@@ -23,47 +23,16 @@ class AccountantGUI(Gtk.Window):
         self.l_transactions = l_transactions
         self.l_transactionsFiltered = [True]*len(self.l_transactions)
 
-        #Setting up the self.grid in which the elements are to be positioned
+        # box containing all
+        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        self.add(self.box)
+
+        #Grid with the upper buttons
         self.grid = Gtk.Grid()
         self.grid.set_column_homogeneous(True)
         self.grid.set_row_homogeneous(True)
-        self.add(self.grid)
+        self.box.pack_start(self.grid, True, True, 0)
 
-        # List store for transactions
-        self.transaction_liststore = Gtk.ListStore(str, str, str,str,str,str,str,str,int)
-        self.fillTransactionListStore()
-
-        # Treeview for transactions
-        self.transaction_treeview =   Gtk.TreeView.new_with_model(self.transaction_liststore)
-        self.select = self.transaction_treeview.get_selection()
-        self.selectedTransactionTreeIter = None
-        self.select.connect("changed", self.on_tree_selection_changed)
-
-        for i, column_title in enumerate(["Date", "Amount","Category", "Description","Account","Comment","Purchase date","Interest date"]):
-            renderer = Gtk.CellRendererText()
-            column = Gtk.TreeViewColumn(column_title, renderer, text=i)
-            column.set_sort_column_id(i)
-            self.transaction_treeview.append_column(column)
-
-        # # # List store for monthly hours
-        # self.formMonthlyHours_liststore()
-
-        # # Treeview for monthly hours
-        # self.monthlyHours_treeview =   Gtk.TreeView.new_with_model(self.monthlyHours_liststore)
-
-        # for i, column_title in enumerate(['Month']+Calendar.lstr_projectLabels + Calendar.lstr_genericProjectLabels + ['Total']):
-        #     renderer = Gtk.CellRendererText()
-        #     column = Gtk.TreeViewColumn(column_title, renderer, text=i)
-        #     self.monthlyHours_treeview.append_column(column)
-
-        #creating buttons to assign transactions to categories
-        self.l_categoryAssignmentButtons = list()
-        for categoryLabel in Transaction.lstr_categoryLabels:
-            button = Gtk.Button(categoryLabel)
-            self.l_categoryAssignmentButtons.append(button)
-            button.connect("clicked",self.categoryAssignmentButtonCallback)
-
-        # #creating buttons in top row
         saveButton = Gtk.Button('Save')
         saveButton.connect("clicked", self.saveButtonCallback)
         loadButton = Gtk.Button('Load')
@@ -75,75 +44,135 @@ class AccountantGUI(Gtk.Window):
         addCommentButton = Gtk.Button('Add Comment')
         addCommentButton.connect("clicked", self.addCommentButtonCallback)
 
-        plotTotalButton = Gtk.Button('Plot Total')
-        plotTotalButton.connect("clicked", self.plotTotalButtonCallback)
-
-        # printAssignmentsButton = Gtk.Button('Print Assignments')
-        # printAssignmentsButton.connect("clicked", self.printAssignmentsButtonCallback)
-
-
-        #setting up the layout, putting the treeview in a scrollwindow, and the buttons in a row
-        self.transaction_scrollableTreelist = Gtk.ScrolledWindow()
-        self.transaction_scrollableTreelist.set_vexpand(True)
-        # self.monthlyHours_scrollableTreelist = Gtk.ScrolledWindow()
-        # self.monthlyHours_scrollableTreelist.set_vexpand(True)
-
-
-        # Place widgets in the grid
         self.grid.attach( saveButton , 0, 0, 2, 1)
         self.grid.attach( loadButton , 2, 0, 2, 1)
         self.grid.attach( appendFromCSVFileButton , 4, 0, 2, 1)
         self.grid.attach( autoAssignButton , 6, 0, 2, 1)
         self.grid.attach( addCommentButton , 8, 0, 2, 1)
-        #self.grid.attach( printAssignmentsButton , 8, 0, 2, 1)
+
+
+        # TreeView  for transactions
+        self.transaction_liststore = Gtk.ListStore(str, str, str,str,str,str,str,str,int)
+        self.fillTransactionListStore()
+
+        self.transaction_treeview =   Gtk.TreeView.new_with_model(self.transaction_liststore)
+        self.select = self.transaction_treeview.get_selection()
+        self.selectedTransactionTreeIter = None
+        self.select.connect("changed", self.on_tree_selection_changed)
+
+        for i, column_title in enumerate(["Date", "Amount","Category", "Description","Account","Comment","Purchase date","Interest date"]):
+            renderer = Gtk.CellRendererText()
+            column = Gtk.TreeViewColumn(column_title, renderer, text=i)
+            column.set_sort_column_id(i)
+            self.transaction_treeview.append_column(column)
+
+        self.transaction_scrollableTreelist = Gtk.ScrolledWindow()
+        self.transaction_scrollableTreelist.set_vexpand(True)
+        self.transaction_scrollableTreelist.add(self.transaction_treeview)
+
         self.grid.attach(self.transaction_scrollableTreelist, 0, 1, 12, 10)
+
+        # buttons to assign transactions to categories
+        self.l_categoryAssignmentButtons = list()
+        for categoryLabel in Transaction.lstr_categoryLabels:
+            button = Gtk.Button(categoryLabel)
+            self.l_categoryAssignmentButtons.append(button)
+            button.connect("clicked",self.categoryAssignmentButtonCallback)
+
+
         self.grid.attach_next_to(self.l_categoryAssignmentButtons[0], self.transaction_scrollableTreelist, Gtk.PositionType.BOTTOM, 1, 1)
         for i, button in enumerate(self.l_categoryAssignmentButtons[1:]):
             self.grid.attach_next_to(button, self.l_categoryAssignmentButtons[i], Gtk.PositionType.RIGHT, 1, 1)
-        # self.grid.attach(self.monthlyHours_scrollableTreelist, 0, 12, 12, 10)
-        self.transaction_scrollableTreelist.add(self.transaction_treeview)
-#        self.monthlyHours_scrollableTreelist.add(self.monthlyHours_treeview)
-
-
-
-        self.filterBox = Gtk.Box(spacing=6)
-        self.grid.attach(self.filterBox , 0 , 15, 10 ,2)
-        filteringLabel = Gtk.Label('Filtering Tools')
 
         ################# FILTER BOX #############################
-        self.filterBox.pack_start(filteringLabel, True, True, 0)
+        filterFrame = Gtk.Frame()
+        self.filterBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        self.box.pack_start(filterFrame , True , True , 0)
+        filterFrame.add(self.filterBox)
+
+        # Top row contains label and filter button
+        self.filterBoxTopRow = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,spacing=6)
+        self.filterBox.pack_start(self.filterBoxTopRow , True , True , 0)
+
+        filteringLabel = Gtk.Label('Filtering Tools')
+        self.filterBoxTopRow.pack_start(filteringLabel, True, True, 0)
+
         self.filterBox.filterButton = Gtk.Button(label="Filter")
         self.filterBox.filterButton.connect("clicked", self.filterButtonCallBack)
-        self.filterBox.pack_start(self.filterBox.filterButton, True, True, 0)
-
-        self.button2 = Gtk.Button(label="Goodbye")
-#        self.button2.connect("clicked", self.on_button2_clicked)
-        self.filterBox.pack_start(self.button2, True, True, 0)
+        self.filterBoxTopRow.pack_start(self.filterBox.filterButton, True, True, 0)
         
+        # Row of category checkbuttons
+        self.filterBoxCategoryRow = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,spacing=6)
+        self.filterBox.pack_start(self.filterBoxCategoryRow , True , True , 0)
+
         self.filterBox.categoryCheckButtons = list()
         for str_cat in Transaction.lstr_categoryLabels:
             cb = Gtk.CheckButton(str_cat)
             self.filterBox.categoryCheckButtons.append(cb)
-            self.filterBox.pack_start(cb, True, True, 0)
+            self.filterBoxCategoryRow.pack_start(cb, True, True, 0)
             cb.set_active(True)
 
         cb = Gtk.CheckButton('No Category')
         self.filterBox.categoryCheckButtons.append(cb)
-        self.filterBox.pack_start(cb, True, True, 0)
+        self.filterBoxCategoryRow.pack_start(cb, True, True, 0)
         cb.set_active(True)
 
+        # Row with dates and description
+        self.filterBoxDateRow = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,spacing=6)
+        self.filterBox.pack_start(self.filterBoxDateRow , True , True , 0)
 
-        #self.btn1.connect("toggled", self.on_checked)
+        self.calendarStartBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        self.filterBoxDateRow.pack_start(self.calendarStartBox , True , True , 0)
+        self.calendarStart = Gtk.Calendar()
+        calendarStartLabel = Gtk.Label('From date:')
+        self.calendarStartBox.pack_start(calendarStartLabel,True,True,0)
+        self.calendarStartBox.pack_start(self.calendarStart,True,True,0)
 
-        # self.grid.attach(filteringLabel , 0 , 15, 2 ,2)
-        # self.grid.attach_next_to(plotTotalButton, filteringLabel, Gtk.PositionType.BOTTOM, 1, 1)
-        ################# PLOT BOX #############################        
+        self.calendarEndBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        self.filterBoxDateRow.pack_start(self.calendarEndBox , True , True , 0)
+        self.calendarEnd = Gtk.Calendar()
+        calendarEndLabel = Gtk.Label('To date:')
+        self.calendarEndBox.pack_start(calendarEndLabel,True,True,0)
+        self.calendarEndBox.pack_start(self.calendarEnd,True,True,0)
+        
+        firstDate,lastDate = Transaction.firstAndLastDates(self.l_transactions)
+        self.calendarStart.select_day(firstDate.day)
+        self.calendarStart.select_month(firstDate.month-1,firstDate.year)
+        self.calendarEnd.select_day(lastDate.day)
+        self.calendarEnd.select_month(lastDate.month-1,lastDate.year)
+
+        self.descriptionFilterBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        self.filterBoxDateRow.pack_start(self.descriptionFilterBox,True,True,0)
+        descriptionFilterLabel = Gtk.Label('Description contains words:')
+        self.descriptionFilterBox.pack_start(descriptionFilterLabel,False,False,0)
+        self.descriptionFilterEntry = Gtk.Entry()
+        self.descriptionFilterBox.pack_start(self.descriptionFilterEntry,False,False,0)
+
+        self.filterBox.accountCheckButtons = list()
+        for str_accountLabel in Transaction.lstr_accountLabels:
+            cb = Gtk.CheckButton(str_accountLabel)
+            self.filterBox.accountCheckButtons.append(cb)
+            self.descriptionFilterBox.pack_start(cb, True, True, 0)
+            cb.set_active(True)
+
+
+        ################# PLOT BOX #############################  
+
+        plotFrame = Gtk.Frame()
+        self.box.pack_start(plotFrame , True , True , 0)
         self.plotBox = Gtk.Box(spacing=6)
+        plotFrame.add(self.plotBox)
+
         plotLabel = Gtk.Label('Plotting Tools')
-        self.grid.attach(self.plotBox , 0 , 18, 10 ,2)
         self.plotBox.pack_start(plotLabel,True,True,0)
+
+        plotTotalButton = Gtk.Button('Plot Total')
+        plotTotalButton.connect("clicked", self.plotTotalButtonCallback)
         self.plotBox.pack_start(plotTotalButton,True,True,0)
 
+        plotTotalPerCategoryButton = Gtk.Button('Plot Total Per Category')
+        plotTotalPerCategoryButton.connect("clicked", self.plotTotalPerCategoryButtonCallback)
+        self.plotBox.pack_start(plotTotalPerCategoryButton,True,True,0)
 
         self.show_all()
 
@@ -346,34 +375,130 @@ class AccountantGUI(Gtk.Window):
 
 
     def plotTotalButtonCallback(self,widget):
-        print('We will plot something')
 
         Transaction.plotTotalOverTime(self.l_transactions)
 
+
+    def plotTotalPerCategoryButtonCallback(self,widget):
+
+        Transaction.plotTotalPerCategoryOverTime(self.l_transactions)
+
+
     def filterButtonCallBack(self,widget):
 
-        # Find active categories
+        # Filter by active categories
         l_activeCategories = {} #[None]*len(Transaction.lstr_categoryLabels)
         for indCategory in range(0,len(self.filterBox.categoryCheckButtons)):
             l_activeCategories[self.filterBox.categoryCheckButtons[indCategory].get_label()] = \
                 self.filterBox.categoryCheckButtons[indCategory].get_active()
 
-        print('now filter',l_activeCategories)
+        l_transactionsFilteredByCategory = self.filterByCategory(l_activeCategories)
+
+        # Filter by date interval
+        (yearStart,monthStart,dayStart) = self.calendarStart.get_date()
+        (yearEnd,monthEnd,dayEnd) = self.calendarEnd.get_date()
+
+        l_transactionsFilteredByDate = self.filterByDate(date(yearStart,monthStart+1,dayStart),\
+                                                         date(yearEnd,monthEnd+1,dayEnd))
+
+        # Filter by description
+        str_description = self.descriptionFilterEntry.get_text()
+        l_transactionsFilteredByDescription = self.filterByDescription(str_description)
+
+        # Filter by account
+        dc_activeAccounts = {} 
+        for indAccount in range(0,len(self.filterBox.accountCheckButtons)):
+            dc_activeAccounts[self.filterBox.accountCheckButtons[indAccount].get_label()] = \
+                self.filterBox.accountCheckButtons[indAccount].get_active()
+
+        print('dc=',dc_activeAccounts)
+        l_transactionsFilteredByAccount = self.filterByAccount(dc_activeAccounts)
+
+        # Combine filters
+        self.l_transactionsFiltered = AccountantGUI.listAnd(l_transactionsFilteredByCategory,\
+                                                            l_transactionsFilteredByDate,\
+                                                            l_transactionsFilteredByDescription,\
+                                                            l_transactionsFilteredByAccount)
+
+
+        print(self.l_transactionsFiltered)
+        self.fillTransactionListStore()
+
+    def filterByDate(self,d_start,d_end):
+        l_transactionsFilteredByDate = [None]*len(self.l_transactions)
+
+        for indTransaction in range(0,len(self.l_transactions)):
+
+            if (self.l_transactions[indTransaction].d_date >= d_start ) \
+               and (self.l_transactions[indTransaction].d_date <= d_end ) :
+                l_transactionsFilteredByDate[indTransaction] = True
+            else:
+                l_transactionsFilteredByDate[indTransaction] = False
+
+        return l_transactionsFilteredByDate
+
+
+
+
+    def filterByAccount(self,dc_activeAccounts):
+
+        l_transactionsFilteredByAccount = [None]*len(self.l_transactions)
+        
+        for indTransaction in range(0,len(self.l_transactions)):
+            if self.l_transactions[indTransaction].str_account:
+                if dc_activeAccounts[self.l_transactions[indTransaction].str_account]:
+                    l_transactionsFilteredByAccount[indTransaction] = True
+                else:
+                    l_transactionsFilteredByAccount[indTransaction] = False
+            else:
+                l_transactionsFilteredByAccount[indTransaction] = False
+
+        return l_transactionsFilteredByAccount
+
+
+        
+
+    def filterByCategory(self,l_activeCategories):
+
+        l_transactionsFilteredByCategory = [None]*len(self.l_transactions)
+        
         for indTransaction in range(0,len(self.l_transactions)):
             if self.l_transactions[indTransaction].str_category:
                 if l_activeCategories[self.l_transactions[indTransaction].str_category]:
-                    self.l_transactionsFiltered[indTransaction] = True
+                    l_transactionsFilteredByCategory[indTransaction] = True
                 else:
-                    self.l_transactionsFiltered[indTransaction] = False
+                    l_transactionsFilteredByCategory[indTransaction] = False
             else:
                 if l_activeCategories['No Category']:
-                    self.l_transactionsFiltered[indTransaction] = True
+                    l_transactionsFilteredByCategory[indTransaction] = True
                 else:
-                    self.l_transactionsFiltered[indTransaction] = False
+                    l_transactionsFilteredByCategory[indTransaction] = False
+
+        return l_transactionsFilteredByCategory
 
 
-        self.fillTransactionListStore()
+    def filterByDescription(self,str_description):
+        l_transactionsFilteredByDescription = [True]*len(self.l_transactions)
 
+        if not str_description:
+            return l_transactionsFilteredByDescription
+
+        for indTransaction in range(0,len(self.l_transactions)):
+
+            if str_description.upper() in self.l_transactions[indTransaction].str_description.upper():
+                l_transactionsFilteredByDescription[indTransaction] = True
+            else:
+                l_transactionsFilteredByDescription[indTransaction] = False
+
+            print('-------------')
+            print(self.l_transactions[indTransaction].str_description)
+            print(str_description)
+            print(l_transactionsFilteredByDescription[indTransaction] )
+        return l_transactionsFilteredByDescription
+
+
+    def listAnd(*args):
+        return [all(tuple) for tuple in zip(*args)]
 
 #############################
 

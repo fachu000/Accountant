@@ -12,6 +12,7 @@ class Transaction:
     """An object of this class describes a bank transaction."""
     
     lstr_categoryLabels = ['FUN','FOOD','CAR','MUSIC','FAMILY','HOME','ANIMALS','WORK']
+    lstr_accountLabels = ['CREDIT_CARD-NO','CHECKING-NO','SAVINGS-NO']
     
     def __init__(self):
         self.d_date = []
@@ -229,6 +230,19 @@ class Transaction:
 
         transactionToBeAssigned.str_category = category
 
+
+    def firstAndLastDates(l_transactions):
+        
+        firstDate = l_transactions[1].d_date
+        lastDate = l_transactions[-1].d_date
+        for transaction in l_transactions:
+            if transaction.d_date<firstDate:
+                firstDate = transaction.d_date
+            if transaction.d_date>lastDate:
+                lastDate = transaction.d_date
+
+        return firstDate,lastDate
+
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # FUNCTIONS TO OBTAIN FIGURES
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
@@ -263,10 +277,7 @@ class Transaction:
         return
 
 
-        
-        
-        plt.plot(l_timeAxis,l_total)
-        plt.ylabel('some numbers')
-        plt.show()
 
-        return 
+    def plotTotalPerCategoryOverTime(l_transactions):
+
+        print('finish this')

@@ -50,8 +50,8 @@ from gi.repository import Gtk
 
 
 # load default list
-#l_transactions = Transaction.loadTransactionList('../data/test-list.pk')
-l_transactions = Transaction.loadTransactionList('../data/default.pk')
+l_transactions = Transaction.loadTransactionList('../data/test-list.pk')
+#l_transactions = Transaction.loadTransactionList('../data/default.pk')
 
 print('here we go')
 
