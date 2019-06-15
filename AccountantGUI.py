@@ -381,124 +381,59 @@ class AccountantGUI(Gtk.Window):
 
     def plotTotalPerCategoryButtonCallback(self,widget):
 
-        Transaction.plotTotalPerCategoryOverTime(self.l_transactions)
+
+        dc_activeCategories,dateStart,dateEnd,str_description,dc_activeAccounts = self.readFilterBox()
+
+        Transaction.plotTotalPerCategoryOverTime(self.l_transactions,dc_activeCategories,dateStart,dateEnd,str_description,dc_activeAccounts)
 
 
     def filterButtonCallBack(self,widget):
 
-        # Filter by active categories
-        l_activeCategories = {} #[None]*len(Transaction.lstr_categoryLabels)
-        for indCategory in range(0,len(self.filterBox.categoryCheckButtons)):
-            l_activeCategories[self.filterBox.categoryCheckButtons[indCategory].get_label()] = \
-                self.filterBox.categoryCheckButtons[indCategory].get_active()
+        dc_activeCategories,dateStart,dateEnd,str_description,dc_activeAccounts = self.readFilterBox()
 
-        l_transactionsFilteredByCategory = self.filterByCategory(l_activeCategories)
+        # Filter by active categories        
+        l_transactionsFilteredByCategory = Transaction.filterByCategory(self.l_transactions,dc_activeCategories)
 
         # Filter by date interval
-        (yearStart,monthStart,dayStart) = self.calendarStart.get_date()
-        (yearEnd,monthEnd,dayEnd) = self.calendarEnd.get_date()
-
-        l_transactionsFilteredByDate = self.filterByDate(date(yearStart,monthStart+1,dayStart),\
-                                                         date(yearEnd,monthEnd+1,dayEnd))
+        l_transactionsFilteredByDate = Transaction.filterByDate(self.l_transactions,dateStart,dateEnd)
 
         # Filter by description
-        str_description = self.descriptionFilterEntry.get_text()
-        l_transactionsFilteredByDescription = self.filterByDescription(str_description)
+        l_transactionsFilteredByDescription = Transaction.filterByDescription(self.l_transactions,str_description)
 
         # Filter by account
+        l_transactionsFilteredByAccount = Transaction.filterByAccount(self.l_transactions,dc_activeAccounts)
+
+        # Combine filters
+        self.l_transactionsFiltered = Transaction.listAnd(l_transactionsFilteredByCategory,\
+                                                            l_transactionsFilteredByDate,\
+                                                            l_transactionsFilteredByDescription,\
+                                                            l_transactionsFilteredByAccount)
+
+        self.fillTransactionListStore()
+
+    def readFilterBox(self):
+
+        dc_activeCategories = {} #[None]*len(Transaction.lstr_categoryLabels)
+        for indCategory in range(0,len(self.filterBox.categoryCheckButtons)):
+            dc_activeCategories[self.filterBox.categoryCheckButtons[indCategory].get_label()] = \
+                self.filterBox.categoryCheckButtons[indCategory].get_active()
+
+        (yearStart,monthStart,dayStart) = self.calendarStart.get_date()
+        (yearEnd,monthEnd,dayEnd) = self.calendarEnd.get_date()
+        dateStart = date(yearStart,monthStart+1,dayStart)
+        dateEnd = date(yearEnd,monthEnd+1,dayEnd)
+
+        str_description = self.descriptionFilterEntry.get_text()
+
         dc_activeAccounts = {} 
         for indAccount in range(0,len(self.filterBox.accountCheckButtons)):
             dc_activeAccounts[self.filterBox.accountCheckButtons[indAccount].get_label()] = \
                 self.filterBox.accountCheckButtons[indAccount].get_active()
 
-        print('dc=',dc_activeAccounts)
-        l_transactionsFilteredByAccount = self.filterByAccount(dc_activeAccounts)
-
-        # Combine filters
-        self.l_transactionsFiltered = AccountantGUI.listAnd(l_transactionsFilteredByCategory,\
-                                                            l_transactionsFilteredByDate,\
-                                                            l_transactionsFilteredByDescription,\
-                                                            l_transactionsFilteredByAccount)
-
-
-        print(self.l_transactionsFiltered)
-        self.fillTransactionListStore()
-
-    def filterByDate(self,d_start,d_end):
-        l_transactionsFilteredByDate = [None]*len(self.l_transactions)
-
-        for indTransaction in range(0,len(self.l_transactions)):
-
-            if (self.l_transactions[indTransaction].d_date >= d_start ) \
-               and (self.l_transactions[indTransaction].d_date <= d_end ) :
-                l_transactionsFilteredByDate[indTransaction] = True
-            else:
-                l_transactionsFilteredByDate[indTransaction] = False
-
-        return l_transactionsFilteredByDate
-
-
-
-
-    def filterByAccount(self,dc_activeAccounts):
-
-        l_transactionsFilteredByAccount = [None]*len(self.l_transactions)
         
-        for indTransaction in range(0,len(self.l_transactions)):
-            if self.l_transactions[indTransaction].str_account:
-                if dc_activeAccounts[self.l_transactions[indTransaction].str_account]:
-                    l_transactionsFilteredByAccount[indTransaction] = True
-                else:
-                    l_transactionsFilteredByAccount[indTransaction] = False
-            else:
-                l_transactionsFilteredByAccount[indTransaction] = False
-
-        return l_transactionsFilteredByAccount
+        return dc_activeCategories,dateStart,dateEnd,str_description,dc_activeAccounts
 
 
-        
-
-    def filterByCategory(self,l_activeCategories):
-
-        l_transactionsFilteredByCategory = [None]*len(self.l_transactions)
-        
-        for indTransaction in range(0,len(self.l_transactions)):
-            if self.l_transactions[indTransaction].str_category:
-                if l_activeCategories[self.l_transactions[indTransaction].str_category]:
-                    l_transactionsFilteredByCategory[indTransaction] = True
-                else:
-                    l_transactionsFilteredByCategory[indTransaction] = False
-            else:
-                if l_activeCategories['No Category']:
-                    l_transactionsFilteredByCategory[indTransaction] = True
-                else:
-                    l_transactionsFilteredByCategory[indTransaction] = False
-
-        return l_transactionsFilteredByCategory
-
-
-    def filterByDescription(self,str_description):
-        l_transactionsFilteredByDescription = [True]*len(self.l_transactions)
-
-        if not str_description:
-            return l_transactionsFilteredByDescription
-
-        for indTransaction in range(0,len(self.l_transactions)):
-
-            if str_description.upper() in self.l_transactions[indTransaction].str_description.upper():
-                l_transactionsFilteredByDescription[indTransaction] = True
-            else:
-                l_transactionsFilteredByDescription[indTransaction] = False
-
-            print('-------------')
-            print(self.l_transactions[indTransaction].str_description)
-            print(str_description)
-            print(l_transactionsFilteredByDescription[indTransaction] )
-        return l_transactionsFilteredByDescription
-
-
-    def listAnd(*args):
-        return [all(tuple) for tuple in zip(*args)]
 
 #############################
 

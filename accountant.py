@@ -7,6 +7,7 @@
 #    - matplotlib
 #
 # NEXT STEPS:
+#     - Continue writing Transaction.plotTotalPerCategoryOverTime
 #     - Plots
 #        - balance vs time (continue in plotTotalButtonCallback by first plotting just transaction amount over time)
 #        - the amount of the filtered transactions vs time

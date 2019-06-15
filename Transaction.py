@@ -1,7 +1,9 @@
 
 from datetime import datetime,timedelta,time,date
+import math as math
 import matplotlib.pyplot as plt
 import pickle
+import numpy as np
 
 import datetime as dt
 import matplotlib.pyplot as plt
@@ -243,6 +245,91 @@ class Transaction:
 
         return firstDate,lastDate
 
+
+    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
+    # FUNCTIONS TO FILTER
+    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
+
+
+    def filterByDate(l_transactions,d_start,d_end):
+        l_transactionsFilteredByDate = [None]*len(l_transactions)
+
+        for indTransaction in range(0,len(l_transactions)):
+
+            if (l_transactions[indTransaction].d_date >= d_start ) \
+               and (l_transactions[indTransaction].d_date <= d_end ) :
+                l_transactionsFilteredByDate[indTransaction] = True
+            else:
+                l_transactionsFilteredByDate[indTransaction] = False
+
+        return l_transactionsFilteredByDate
+
+
+
+
+    def filterByAccount(l_transactions,dc_activeAccounts):
+
+        l_transactionsFilteredByAccount = [None]*len(l_transactions)
+        
+        for indTransaction in range(0,len(l_transactions)):
+            if l_transactions[indTransaction].str_account:
+                if dc_activeAccounts[l_transactions[indTransaction].str_account]:
+                    l_transactionsFilteredByAccount[indTransaction] = True
+                else:
+                    l_transactionsFilteredByAccount[indTransaction] = False
+            else:
+                l_transactionsFilteredByAccount[indTransaction] = False
+
+        return l_transactionsFilteredByAccount
+
+
+        
+
+    def filterByCategory(l_transactions,dc_activeCategories):
+
+        l_transactionsFilteredByCategory = [None]*len(l_transactions)
+        
+        for indTransaction in range(0,len(l_transactions)):
+            if l_transactions[indTransaction].str_category:
+                if dc_activeCategories[l_transactions[indTransaction].str_category]:
+                    l_transactionsFilteredByCategory[indTransaction] = True
+                else:
+                    l_transactionsFilteredByCategory[indTransaction] = False
+            else:
+                if dc_activeCategories['No Category']:
+                    l_transactionsFilteredByCategory[indTransaction] = True
+                else:
+                    l_transactionsFilteredByCategory[indTransaction] = False
+
+        return l_transactionsFilteredByCategory
+
+
+    def filterByDescription(l_transactions,str_description):
+        l_transactionsFilteredByDescription = [True]*len(l_transactions)
+
+        if not str_description:
+            return l_transactionsFilteredByDescription
+
+        for indTransaction in range(0,len(l_transactions)):
+
+            if str_description.upper() in l_transactions[indTransaction].str_description.upper():
+                l_transactionsFilteredByDescription[indTransaction] = True
+            else:
+                l_transactionsFilteredByDescription[indTransaction] = False
+
+            print('-------------')
+            print(l_transactions[indTransaction].str_description)
+            print(str_description)
+            print(l_transactionsFilteredByDescription[indTransaction] )
+        return l_transactionsFilteredByDescription
+
+
+    def listAnd(*args):
+        return [all(tuple) for tuple in zip(*args)]
+
+
+
+
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # FUNCTIONS TO OBTAIN FIGURES
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
@@ -278,6 +365,24 @@ class Transaction:
 
 
 
-    def plotTotalPerCategoryOverTime(l_transactions):
+    def plotTotalPerCategoryOverTime(l_transactions,dc_activeCategories,dateStart,dateEnd,str_description,dc_activeAccounts):
+
+        i_numCols = 2
+        i_numRows = math.ceil(len(dc_activeCategories)/(i_numCols*1.0))
+
+        t2 = np.arange(0.0, 5.0, 0.02)
+
+        plt.figure(1)
+        for indCategory in range(0,len(dc_activeCategories)):
+            
+            plt.subplot(i_numRows,i_numCols,indCategory)
+            plt.plot(t2, np.cos(2*np.pi*t2), 'r--')
+            print(dc_activeCategories)
+            print(indCategory)
+#            plt.title(dc_activeCategories[indCategory])
+        
+        plt.show()
+
+
 
         print('finish this')
