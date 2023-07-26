@@ -17,20 +17,16 @@
 #     -On top: buttons to load/save Transaction lists or to read files
 #     -Below: text boxes to specify filters (which transactions to display)
 #     -Below: list of transactions that pass the filters
-#     -Below: one button per category-- used to assign the selected event to a category. We can use a similar code as for readCalendar. 
+#     -Below: one button per category-- used to assign the selected event to a category. We can use a similar code as for readCalendar.
 #     -Below: buttons to plot#
-
 
 # For Python + GTK, see:  https://python-gtk-3-tutorial.readthedocs.io/en/latest/introduction.html
 
 ########################################################################
 
-
-########################################################################
-    
-        
 ########################################################################
 
+########################################################################
 
 from AccountantGUI import AccountantGUI
 
@@ -39,6 +35,7 @@ from Transaction import Transaction
 ###############################
 
 import gi
+
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
@@ -49,14 +46,11 @@ from gi.repository import Gtk
 
 # quit()
 
-
 # load default list
-l_transactions = Transaction.loadTransactionList('../data/test-list.pk')
+l_transactions = Transaction.loadTransactionList('../../data/test-list.pk')
 #l_transactions = Transaction.loadTransactionList('../data/default.pk')
 
 print('here we go')
-
-
 
 win = AccountantGUI(l_transactions)
 #win = AccountantGUI([])
