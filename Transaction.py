@@ -8,6 +8,11 @@ import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
+ll_default_csv_files = [[
+    '../../data/CSV/checking.csv', 'ISO-8859-1', 'CHECKING-NO'
+], ['../../data/CSV/savings.csv', 'ISO-8859-1',
+    'SAVINGS-NO'], ['../../data/CSV/creditCard.csv', 'UTF8', 'CREDIT_CARD-NO']]
+
 
 class Transaction:
     """An object of this class describes a bank transaction."""
@@ -135,10 +140,10 @@ class Transaction:
         print('COMMENT: ', self.str_comment)
         print('------------------------------')
 
-    def readTransactionListFromCSVFile(ll_files):
+    def readTransactionListFromCSVFile(ll_csv_files=ll_default_csv_files):
         l_transactions = []
 
-        for l_file in ll_files:
+        for l_file in ll_csv_files:
             with open(l_file[0], 'r', encoding=l_file[1]) as input:
 
                 str_format = input.readline()[
