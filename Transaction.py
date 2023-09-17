@@ -163,9 +163,9 @@ l_csvProcessors = [
 class Transaction:
     """An object of this class describes a bank transaction."""
 
-    lstr_categoryLabels = [
-        'FUN', 'FOOD', 'CAR', 'MUSIC', 'FAMILY', 'HOME', 'ANIMALS', 'WORK'
-    ]
+    # Pairs of (label, shortcut key)
+    lstr_categoryLabels = [('FUN', 'f'), ('FOOD', 'o'), ('CAR', 'c'),
+                           ('MUSIC', 'm'), ('HOME', 'h'), ('WORK', 'w')]
     lstr_accountLabels = ['CREDIT_CARD-NO', 'CHECKING-NO', 'SAVINGS-NO']
 
     def __init__(self):

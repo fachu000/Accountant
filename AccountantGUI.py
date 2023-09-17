@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, time, date
 import gi
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gdk
 
 
 class AccountantGUI(Gtk.Window):
@@ -78,8 +78,9 @@ class AccountantGUI(Gtk.Window):
         self.grid.attach(self.transaction_scrollableTreelist, 0, 1, 12, 10)
 
         # buttons to assign transactions to categories
+        #self.l_categoryAssignmentButtons = list()
         self.l_categoryAssignmentButtons = list()
-        for categoryLabel in Transaction.lstr_categoryLabels:
+        for categoryLabel, _ in Transaction.lstr_categoryLabels:
             button = Gtk.Button(categoryLabel)
             self.l_categoryAssignmentButtons.append(button)
             button.connect("clicked", self.categoryAssignmentButtonCallback)
@@ -119,7 +120,7 @@ class AccountantGUI(Gtk.Window):
         self.filterBox.pack_start(self.filterBoxCategoryRow, True, True, 0)
 
         self.filterBox.categoryCheckButtons = list()
-        for str_cat in Transaction.lstr_categoryLabels:
+        for str_cat, _ in Transaction.lstr_categoryLabels:
             cb = Gtk.CheckButton(str_cat)
             self.filterBox.categoryCheckButtons.append(cb)
             self.filterBoxCategoryRow.pack_start(cb, True, True, 0)
@@ -196,6 +197,21 @@ class AccountantGUI(Gtk.Window):
         self.plotBox.pack_start(plotTotalPerCategoryButton, True, True, 0)
 
         self.show_all()
+
+        ### keyboard shortcuts
+        self.connect("key-press-event", self.on_key_press_event)
+
+    def on_key_press_event(self, widget, event):
+        """Note: Return true if you want to prevent the default callbacks from
+        running. """
+        print("Key press on widget: ", widget)
+        print("          Modifiers: ", event.state)
+        print("      Key val, name: ", event.keyval,
+              Gdk.keyval_name(event.keyval))
+        for cat in Transaction.lstr_categoryLabels:
+            if event.keyval == Gdk.keyval_from_name(cat[1]):
+                self.assignSelectedTransactionToCategory(cat[0])
+                return True
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # FUNCTIONS TO MANIPULATE THE LIST STORE
@@ -371,6 +387,10 @@ class AccountantGUI(Gtk.Window):
         transaction to the value of the label of the button."""
 
         str_selectedCategory = widget.get_label()
+        self.assignSelectedTransactionToCategory(str_selectedCategory)
+
+    def assignSelectedTransactionToCategory(self, str_category):
+
         treeiter = self.selectedTransactionTreeIter
         if treeiter == None:
             return
@@ -380,7 +400,7 @@ class AccountantGUI(Gtk.Window):
 
         #        self.l_transactions[selectedTransactionIndex].print()
         self.l_transactions[
-            selectedTransactionIndex].str_category = str_selectedCategory
+            selectedTransactionIndex].str_category = str_category
         #        self.calendar.l_CalEvents[selectedEventIndex].print()
         #        self.updateStoreRow(selectedRowIndex)
         self.updateStoreRows()
