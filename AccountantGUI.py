@@ -206,7 +206,11 @@ class AccountantGUI(Gtk.Window):
               Gdk.keyval_name(event.keyval))
 
         if self.descriptionFilterEntry.is_focus():
-            return False  # the user is typing on the filter box
+            if event.keyval == Gdk.KEY_Return:
+                self.filterButtonCallBack(self)
+                return True
+            else:
+                return False  # the user is typing on the filter box
 
         for cat in Transaction.lstr_categoryLabels:
             if event.keyval == Gdk.keyval_from_name(cat[1]):
@@ -505,7 +509,7 @@ class AccountantGUI(Gtk.Window):
         #     if l_transactionsFiltered[i]
         # ]
 
-    def filterButtonCallBack(self, widget):
+    def filterButtonCallBack(self, widget=None):
         self.filterTransactionList()
         self.fillTransactionListStore()
 
