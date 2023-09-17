@@ -317,31 +317,54 @@ class Transaction:
 
     def autoAssignTransactionsToCategory(l_transactions):
 
+        def autoAssignTransactionToCategory(l_transactions,
+                                            transactionToBeAssigned):
+            """Assigns transaction to a category C if each transactions in
+            <l_transactions> with the same description as <transaction> is
+            assigned either to C or not assigned to any category."""
+
+            if transactionToBeAssigned.str_category:
+                return
+
+            if transactionToBeAssigned.str_description == 'Universitetet i':
+                print("checking for trans on  = ",
+                      transactionToBeAssigned.d_date)
+
+            # We finish the following loop with category = '' if there are no
+            # transactions with the same description as <transactionToBeAssigned>
+            # and different categories.
+            category = ''
+            for tran in l_transactions:
+                if (not tran.str_category):
+                    continue
+                if tran.str_description == 'Universitetet i':
+                    print("cat = ", tran.str_category)
+                    if tran.str_category == 'WORK':
+                        print("It is work")
+                if tran.str_description == transactionToBeAssigned.str_description:
+                    if (Transaction.isAutoCategory(tran.str_category)):
+                        # We do not take into account automatically assigned categories
+                        continue
+                    # We arrive at this point if tran has a non-empty and
+                    # non-auto category and the description of tran is the same
+                    # as the description of transactionToBeAssigned.
+                    #
+                    if category:
+                        if (category != tran.str_category):
+                            return  # since there are two transactions with the
+                            # same description as
+                            # <transactionToBeAssigned> and they are
+                            # assigned to different categories.
+                    else:
+                        category = Transaction.stripCategory(tran.str_category)
+
+            if category:
+                transactionToBeAssigned.str_category = Transaction.makeAutoCategory(
+                    category)
+
         for transaction in l_transactions:
-            Transaction.autoAssignTransactionToCategory(
-                l_transactions, transaction)
-
-    def autoAssignTransactionToCategory(l_transactions,
-                                        transactionToBeAssigned):
-        """Assigns transaction to a category C if each transactions in
-        <l_transactions> with the same description as <transaction> is
-        assigned either to C or not assigned to any category."""
-
-        if transactionToBeAssigned.str_category:
-            return
-        category = ''
-        for tran in l_transactions:
-            if tran.str_description == transactionToBeAssigned.str_description:
-                if category:
-                    if (tran.str_category) and (category != tran.str_category):
-                        return  # since there are two transactions with the
-                        # same description as
-                        # <transactionToBeAssigned> and they are
-                        # assigned to different categories.
-                else:
-                    category = tran.str_category
-
-        transactionToBeAssigned.str_category = category
+            if not transaction.str_category:
+                autoAssignTransactionToCategory(l_transactions, transaction)
 
     def firstAndLastDates(l_transactions):
 
@@ -371,9 +394,9 @@ class Transaction:
                    and (excludeTwinInd or (hasattr(self,'twinInd') and hasattr(refTrans,'twinInd') and (self.twinInd == refTrans.twinInd)))
 
         if b_out_val:
-            assert (self.d_interestDate == refTrans.d_interestDate)\
-                    and (self.d_purchaseDate == refTrans.d_purchaseDate)\
-                    , "Check what happens with these fields"
+            if not( (self.d_interestDate == refTrans.d_interestDate)\
+                    and (self.d_purchaseDate == refTrans.d_purchaseDate)):
+                print("There were changes in some fields")
         return b_out_val
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
@@ -429,9 +452,17 @@ class Transaction:
         return l_transactionsFilteredByCategory
 
     @staticmethod
+    def makeAutoCategory(category):
+        return category + ' [auto]'
+
+    @staticmethod
     def stripCategory(category):
         """ Removes the [auto] part at the end of a category name"""
         return category.split(' [')[0]
+
+    @staticmethod
+    def isAutoCategory(category):
+        return category[-6:] == '[auto]'
 
     def filterByDescription(l_transactions, str_description):
         l_transactionsFilteredByDescription = [True] * len(l_transactions)

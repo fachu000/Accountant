@@ -444,6 +444,8 @@ class AccountantGUI(Gtk.Window):
         If `auto` is True, then all transactions with the same description and
         without an assigned category are assigned `str_category`+ ' [auto]'.
         
+        NOTE: str_category must be stripped, i.e., it must have no ' [auto]'
+
         """
 
         selectedTransactionIndex = self.getSelectedTransactionInd()
@@ -457,7 +459,7 @@ class AccountantGUI(Gtk.Window):
             for t in self.l_transactions:
                 if t.str_category == '' and t.str_description == self.l_transactions[
                         selectedTransactionIndex].str_description:
-                    t.str_category = str_category + ' [auto]'
+                    t.str_category = Transaction.makeAutoCategory(str_category)
 
         self.updateStoreRows()
 
