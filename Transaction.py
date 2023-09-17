@@ -7,6 +7,7 @@ import numpy as np
 import datetime as dt
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib.ticker import FuncFormatter
 
 ll_default_csv_files = [[
     '../../data/CSV/checking.csv', 'ISO-8859-1', 'CHECKING-NO'
@@ -458,8 +459,29 @@ class Transaction:
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # FUNCTIONS TO OBTAIN FIGURES
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
+    @staticmethod
+    def _setYaxisCommaFormatting():
 
-    def plotTotalOverTime(l_transactions):
+        def with_commas(x, pos):
+            return format(x, ",.0f")
+
+        plt.gca().yaxis.set_major_formatter(FuncFormatter(with_commas))
+
+    def plotCumsumOverTime(l_transactions):
+        # ,
+        #                   start_date_lim=None,
+        #                   end_date_lim=None):
+        # """
+        # start_date_lim and end_date_lim are datetime.date objects that limit the
+        # x-axis.
+
+        # """
+
+        # # Default start and end dates
+        # if start_date_lim is None or end_date_lim is None:
+        #     _start, _end = Transaction.firstAndLastDates(l_transactions)
+        #     start_date_lim = _start if start_date_lim is None else start_date_lim
+        #     end_date_lim = _end if end_date_lim is None else end_date_lim
 
         l_timeAxis = [None] * (len(l_transactions) + 1)
         l_timeAxis[0] = l_transactions[0].d_date
@@ -471,39 +493,66 @@ class Transaction:
             l_timeAxis[indTransaction +
                        1] = l_transactions[indTransaction].d_date
 
-        dates = ['01/01/1991', '01/03/1991', '01/04/1991']
-
         dates = [d.strftime('%Y/%m/%d') for d in l_timeAxis]
         x = [dt.datetime.strptime(d, '%Y/%m/%d').date() for d in dates]
         y = l_total  # range(len(x)) # many thanks to Kyss Tao for setting me straight here
 
+        Transaction._setYaxisCommaFormatting()
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d'))
-        plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
-        plt.plot(x, y, 'ro-')
+        #plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
+        plt.plot(x, y, marker='.')
         plt.gcf().autofmt_xdate()
+        plt.grid()
+        plt.title("Cumsum of the filtered transactions")
+        plt.ylabel("Cumsum [NOK]")
         plt.show()
         return
 
-    def plotTotalPerCategoryOverTime(l_transactions, dc_activeCategories,
-                                     dateStart, dateEnd, str_description,
-                                     dc_activeAccounts):
+    def plotMonthlySumsPerCategoryOverTime(l_transactions):
 
-        i_numCols = 2
-        i_numRows = math.ceil(len(dc_activeCategories) / (i_numCols * 1.0))
+        # Find which categories exist in l_transactions
+        l_cat = [t.str_category for t in l_transactions]
+        l_cat = list(set(l_cat))
+        l_cat = [Transaction.stripCategory(c) for c in l_cat]
+        l_cat = list(set(l_cat))
 
-        t2 = np.arange(0.0, 5.0, 0.02)
+        start_date, end_date = Transaction.firstAndLastDates(l_transactions)
+        num_years = end_date.year - start_date.year + 1
+
+        # Obtain totals per month
+        def get_monthly_partials(l_transactions):
+            l_totals = [[0] * 12 for _ in range(num_years)]
+            for t in l_transactions:
+                year = t.d_date.year - start_date.year
+                month = t.d_date.month - 1
+                l_totals[year][month] += t.f_amount
+
+            return l_totals
 
         plt.figure(1)
-        for indCategory in range(0, len(dc_activeCategories)):
+        l_months = [
+            date(year=year, month=month, day=1)
+            for year in range(start_date.year, end_date.year + 1)
+            for month in range(1, 13)
+        ]
 
-            plt.subplot(i_numRows, i_numCols, indCategory + 1)
-            plt.plot(t2, np.cos(2 * np.pi * t2), 'r--')
-            print(dc_activeCategories)
-            print(indCategory)
+        for indCategory in range(0, len(l_cat)):
+            l_transactions_now = [
+                t for t in l_transactions if Transaction.stripCategory(
+                    t.str_category) == l_cat[indCategory]
+            ]
+            l_partials = get_monthly_partials(l_transactions_now)
+            plt.plot(l_months, [-t for y in l_partials for t in y],
+                     marker='.',
+                     label=l_cat[indCategory]
+                     if l_cat[indCategory] else 'No Category')
 
-
-#            plt.title(dc_activeCategories[indCategory])
+        Transaction._setYaxisCommaFormatting()
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m'))
+        plt.ylabel("Outgoing amount [NOK/month]")
+        plt.title(l_cat[indCategory])
+        plt.gcf().autofmt_xdate()
+        plt.legend()
+        plt.grid()
 
         plt.show()
-
-        print('finish this')

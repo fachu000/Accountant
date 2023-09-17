@@ -178,17 +178,19 @@ class AccountantGUI(Gtk.Window):
         self.plotBox = Gtk.Box(spacing=6)
         plotFrame.add(self.plotBox)
 
-        plotLabel = Gtk.Label('Plotting Tools')
+        plotLabel = Gtk.Label('Plot Filtered Transactions:')
         self.plotBox.pack_start(plotLabel, True, True, 0)
 
-        plotTotalButton = Gtk.Button('Plot Total')
-        plotTotalButton.connect("clicked", self.plotTotalButtonCallback)
-        self.plotBox.pack_start(plotTotalButton, True, True, 0)
+        plotCumsumButton = Gtk.Button('Plot Cumsum')
+        plotCumsumButton.connect("clicked", self.plotCumsumButtonCallback)
+        self.plotBox.pack_start(plotCumsumButton, True, True, 0)
 
-        plotTotalPerCategoryButton = Gtk.Button('Plot Total Per Category')
-        plotTotalPerCategoryButton.connect(
-            "clicked", self.plotTotalPerCategoryButtonCallback)
-        self.plotBox.pack_start(plotTotalPerCategoryButton, True, True, 0)
+        plotMonthlySumsPerCategoryButton = Gtk.Button(
+            'Plot Monthly Sums Per Category')
+        plotMonthlySumsPerCategoryButton.connect(
+            "clicked", self.plotMonthlySumsPerCategoryButtonCallback)
+        self.plotBox.pack_start(plotMonthlySumsPerCategoryButton, True, True,
+                                0)
 
         self.show_all()
 
@@ -222,6 +224,12 @@ class AccountantGUI(Gtk.Window):
         self.calendarStart.select_month(firstDate.month - 1, firstDate.year)
         self.calendarEnd.select_day(lastDate.day)
         self.calendarEnd.select_month(lastDate.month + 1, lastDate.year)
+
+    def getFilteredTransactions(self):
+        return [
+            self.l_transactions[i] for i in range(len(self.l_transactions))
+            if self.l_transactionsFiltered[i]
+        ]
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # FUNCTIONS TO MANIPULATE THE LIST STORE
@@ -453,20 +461,16 @@ class AccountantGUI(Gtk.Window):
 
         self.updateStoreRows()
 
-    def plotTotalButtonCallback(self, widget):
+    def plotCumsumButtonCallback(self, widget):
 
-        Transaction.plotTotalOverTime(self.l_transactions)
+        Transaction.plotCumsumOverTime(self.getFilteredTransactions())
 
-    def plotTotalPerCategoryButtonCallback(self, widget):
+    def plotMonthlySumsPerCategoryButtonCallback(self, widget):
 
-        dc_activeCategories, dateStart, dateEnd, str_description, dc_activeAccounts = self.readFilterBox(
-        )
+        #dc_activeCategories, dateStart, dateEnd, str_description, dc_activeAccounts = self.readFilterBox(
 
-        Transaction.plotTotalPerCategoryOverTime(self.l_transactions,
-                                                 dc_activeCategories,
-                                                 dateStart, dateEnd,
-                                                 str_description,
-                                                 dc_activeAccounts)
+        Transaction.plotMonthlySumsPerCategoryOverTime(
+            self.getFilteredTransactions())
 
     def filterTransactionList(self):
         dc_activeCategories, dateStart, dateEnd, str_description, dc_activeAccounts = self.readFilterBox(

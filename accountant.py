@@ -11,7 +11,6 @@
 #     - Plots
 #        - balance vs time (continue in plotTotalButtonCallback by first plotting just transaction amount over time)
 #        - the amount of the filtered transactions vs time
-#     - The start and end dates must be set after reading the file
 
 #
 # GRAPHICAL INTERFACE:
@@ -48,8 +47,10 @@ from gi.repository import Gtk
 # quit()
 
 # load default list
-l_transactions = Transaction.loadTransactionList('../../data/test-list.pk')
+#l_transactions = Transaction.loadTransactionList('../../data/test-list.pk')
 #l_transactions = Transaction.loadTransactionList('../data/default.pk')
+l_transactions = Transaction.loadTransactionList(
+    '/Users/dani/Downloads/test_assignments')
 
 print('here we go')
 
