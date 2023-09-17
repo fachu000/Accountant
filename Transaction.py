@@ -179,6 +179,12 @@ class Transaction:
         self.str_comment = ''
         self.fromAccount = ''  # str in order to hold an IBAN
         self.toAccount = ''  # str in order to hold an IBAN
+        # Twin transactions are those with the same fields. This may happen e.g.
+        # when buying two coffees in the same day at the same place. `twinInd`
+        # indexes the twin transactions with the same fields. Thus, the first
+        # coffee in the day has id 0, the second 1, etc. This field is 0 if the
+        # transaction has no twin.
+        self.twinInd = None
 
     def dateStrToDate(str_date):
 
@@ -201,7 +207,38 @@ class Transaction:
         print('ACCOUNT: ', self.str_account)
         print('CATEGORY: ', self.str_category)
         print('COMMENT: ', self.str_comment)
+        print('TWIN IND: ', self.twinInd)
         print('------------------------------')
+
+    @staticmethod
+    def setTwinInd(l_trans):
+        """Sets the twinInd field of each transaction in l_transactions. 
+        
+        It is assumed that the oldest transaction has no twins out of those in
+        `l_trans`. This will occur if the first day is complete, as it will
+        typically occur when we download a CSV file. 
+        """
+
+        if len(l_trans) == 0:
+            return
+
+        # Sort the list by date. This ensures that twins are consecutive.
+        l_trans = sorted(l_trans, key=lambda transaction: transaction.d_date)
+
+        l_trans[0].twinInd = 0
+        if len(l_trans) == 1:
+            return
+
+        # Compare each transaction with the previous one in the list.
+        for indTransaction in range(1, len(l_trans)):
+            if l_trans[indTransaction].equals(l_trans[indTransaction - 1],
+                                              excludeTwinInd=True):
+                l_trans[indTransaction].twinInd = l_trans[indTransaction -
+                                                          1].twinInd + 1
+                print('WARNING: twin transactions found:')
+                l_trans[indTransaction].print()
+            else:
+                l_trans[indTransaction].twinInd = 0
 
     def readTransactionListFromCSVFile(ll_csv_files=ll_default_csv_files):
 
@@ -253,14 +290,12 @@ class Transaction:
         def inList(t, l_t):
             # Returns True iff transaction `t` is in the list `l_t`.
             for refTrans in l_t:
-                if (t.d_date == refTrans.d_date) \
-                   and (t.f_amount == refTrans.f_amount)\
-                   and (t.d_interestDate == refTrans.d_interestDate)\
-                   and (t.d_purchaseDate == refTrans.d_purchaseDate)\
-                   and (t.str_description == refTrans.str_description):
-
+                if t.equals(refTrans):
                     return True
             return False
+
+        Transaction.setTwinInd(l_existing)
+        Transaction.setTwinInd(l_possibly_new)
 
         l_out = [t for t in l_existing]
         num_newTransactions = 0
@@ -321,6 +356,24 @@ class Transaction:
                 lastDate = transaction.d_date
 
         return firstDate, lastDate
+
+    def equals(self, refTrans, excludeTwinInd=False):
+        """ Returns True if the main fields are equal.
+
+        If `excludeTwinInd` is True, the twinInd field is not considered.
+
+        """
+        b_out_val = (self.d_date == refTrans.d_date) \
+                   and (self.f_amount == refTrans.f_amount)\
+                   and (self.str_description == refTrans.str_description)\
+                    and (self.str_account == refTrans.str_account)\
+                   and (excludeTwinInd or (hasattr(self,'twinInd') and hasattr(refTrans,'twinInd') and (self.twinInd == refTrans.twinInd)))
+
+        if b_out_val:
+            assert (self.d_interestDate == refTrans.d_interestDate)\
+                    and (self.d_purchaseDate == refTrans.d_purchaseDate)\
+                    , "Check what happens with these fields"
+        return b_out_val
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # FUNCTIONS TO FILTER

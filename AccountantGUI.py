@@ -53,7 +53,7 @@ class AccountantGUI(Gtk.Window):
 
         # TreeView  for transactions
         self.transaction_liststore = Gtk.ListStore(str, str, str, str, str,
-                                                   str, str, str, int)
+                                                   str, str, str, str, int)
         self.fillTransactionListStore(self.l_transactions)
 
         self.transaction_treeview = Gtk.TreeView.new_with_model(
@@ -64,7 +64,7 @@ class AccountantGUI(Gtk.Window):
 
         for i, column_title in enumerate([
                 "Date", "Amount", "Category", "Description", "Account",
-                "Comment", "Purchase date", "Interest date"
+                "Comment", "Purchase date", "Interest date", "Twin Index"
         ]):
             renderer = Gtk.CellRendererText()
             column = Gtk.TreeViewColumn(column_title, renderer, text=i)
@@ -250,9 +250,12 @@ class AccountantGUI(Gtk.Window):
         str_category = transaction.str_category
         str_account = transaction.str_account
         str_comment = transaction.str_comment
+        str_twinInd = str(transaction.twinInd) if hasattr(
+            transaction, 'twinInd') else ''
         return [
             str_date, str_amount, str_category, str_description, str_account,
-            str_comment, str_purchaseDate, str_interestDate, i_indexInList
+            str_comment, str_purchaseDate, str_interestDate, str_twinInd,
+            i_indexInList
         ]
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
