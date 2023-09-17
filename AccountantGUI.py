@@ -211,6 +211,7 @@ class AccountantGUI(Gtk.Window):
         for cat in Transaction.lstr_categoryLabels:
             if event.keyval == Gdk.keyval_from_name(cat[1]):
                 self.assignSelectedTransactionToCategory(cat[0])
+                self.selectNextTransaction()
                 return True
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
@@ -273,6 +274,22 @@ class AccountantGUI(Gtk.Window):
             str_comment, str_purchaseDate, str_interestDate, str_twinInd,
             i_indexInList
         ]
+
+    def selectNextTransaction(self):
+        """Moves the selection one step forward """
+
+        selection = self.transaction_treeview.get_selection()
+
+        # Get the model and currently selected iter
+        model, current_iter = selection.get_selected()
+        if not current_iter:
+            # No current selection, return
+            return
+
+        # Get the next iter
+        next_iter = model.iter_next(current_iter)
+        if next_iter:
+            selection.select_iter(next_iter)
 
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
     # CALLBACK FUNCTIONS
@@ -394,20 +411,11 @@ class AccountantGUI(Gtk.Window):
         treeiter = self.selectedTransactionTreeIter
         if treeiter == None:
             return
-#        selectedRowIndex = self.transaction_liststore.get_path(treeiter).get_indices()[0]
-        selectedTransactionIndex = self.transaction_liststore[treeiter][-1]
-        #        print('here',self.transaction_liststore[treeiter][-1],self.transaction_liststore[treeiter][3])
 
-        #        self.l_transactions[selectedTransactionIndex].print()
+        selectedTransactionIndex = self.transaction_liststore[treeiter][-1]
         self.l_transactions[
             selectedTransactionIndex].str_category = str_category
-        #        self.calendar.l_CalEvents[selectedEventIndex].print()
-        #        self.updateStoreRow(selectedRowIndex)
         self.updateStoreRows()
-        #self.calendar.printMonthlyHoursPerProject()
-#        self.updateMonthlyHours_liststore()
-
-#        self.events_liststore
 
     def plotTotalButtonCallback(self, widget):
 
