@@ -20,7 +20,7 @@ class AccountantGUI(Gtk.Window):
         Gtk.Window.__init__(self, title="Accountant GUI")
         self.set_border_width(10)
         self.l_transactions = l_transactions
-        self.l_transactionsFiltered = [True] * len(self.l_transactions)
+        #self.l_transactionsFiltered = [True] * len(self.l_transactions)
 
         # box containing all
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -35,7 +35,7 @@ class AccountantGUI(Gtk.Window):
         # Buttons
         saveButton = Gtk.Button('Save')
         saveButton.connect("clicked", self.saveButtonCallback)
-        loadButton = Gtk.Button('Load')
+        loadButton = Gtk.Button('Load Transaction File')
         loadButton.connect("clicked", self.loadButtonCallback)
         appendFromCSVFileButton = Gtk.Button('Append From CSV')
         appendFromCSVFileButton.connect("clicked",
@@ -54,7 +54,7 @@ class AccountantGUI(Gtk.Window):
         # TreeView  for transactions
         self.transaction_liststore = Gtk.ListStore(str, str, str, str, str,
                                                    str, str, str, int)
-        self.fillTransactionListStore()
+        self.fillTransactionListStore(self.l_transactions)
 
         self.transaction_treeview = Gtk.TreeView.new_with_model(
             self.transaction_liststore)
@@ -156,7 +156,7 @@ class AccountantGUI(Gtk.Window):
         self.calendarStart.select_day(firstDate.day)
         self.calendarStart.select_month(firstDate.month - 1, firstDate.year)
         self.calendarEnd.select_day(lastDate.day)
-        self.calendarEnd.select_month(lastDate.month - 1, lastDate.year)
+        self.calendarEnd.select_month(lastDate.month + 1, lastDate.year)
 
         self.descriptionFilterBox = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL, spacing=6)
@@ -201,14 +201,11 @@ class AccountantGUI(Gtk.Window):
     # FUNCTIONS TO MANIPULATE THE LIST STORE
     # # # #    # # # #    # # # #    # # # #    # # # #    # # # #    # # # #
 
-    def fillTransactionListStore(self):
+    def fillTransactionListStore(self, l_transactions):
         """Clears and fills the transaction ListStore."""
 
         self.transaction_liststore.clear()
-        for transactionIndex in range(0, len(self.l_transactions)):
-            if not self.l_transactionsFiltered[transactionIndex]:
-                continue
-            transaction = self.l_transactions[transactionIndex]
+        for transactionIndex, transaction in enumerate(l_transactions):
             row = AccountantGUI.transactionToStoreRowList(
                 transaction, transactionIndex)
             self.transaction_liststore.append(row)
@@ -293,7 +290,7 @@ class AccountantGUI(Gtk.Window):
             print("File selected: " + dialog.get_filename())
             self.l_transactions = Transaction.loadTransactionList(
                 dialog.get_filename())
-            self.fillTransactionListStore()
+            self.fillTransactionListStore(self.l_transactions)
 
         elif response == Gtk.ResponseType.CANCEL:
             print("Cancel clicked")
@@ -319,10 +316,10 @@ class AccountantGUI(Gtk.Window):
         #l_transactions = Transaction.readTransactionListFromCSVFile(ll_files)
         l_transactions_CSV = Transaction.readTransactionListFromCSVFile()
 
-        num_newTransactions = Transaction.combineListsOfTransactions(
+        self.l_transactions = Transaction.combineListsOfTransactions(
             self.l_transactions, l_transactions_CSV)
-        print('new transactions = ', num_newTransactions)
-        self.fillTransactionListStore()
+
+        self.fillTransactionListStore(self.l_transactions)
 
     def autoAssignButtonCallback(self, widget):
 
@@ -404,34 +401,39 @@ class AccountantGUI(Gtk.Window):
                                                  str_description,
                                                  dc_activeAccounts)
 
-    def filterButtonCallBack(self, widget):
-
+    def filterTransactionList(self, l_transactions):
         dc_activeCategories, dateStart, dateEnd, str_description, dc_activeAccounts = self.readFilterBox(
         )
 
         # Filter by active categories
         l_transactionsFilteredByCategory = Transaction.filterByCategory(
-            self.l_transactions, dc_activeCategories)
+            l_transactions, dc_activeCategories)
 
         # Filter by date interval
         l_transactionsFilteredByDate = Transaction.filterByDate(
-            self.l_transactions, dateStart, dateEnd)
+            l_transactions, dateStart, dateEnd)
 
         # Filter by description
         l_transactionsFilteredByDescription = Transaction.filterByDescription(
-            self.l_transactions, str_description)
+            l_transactions, str_description)
 
         # Filter by account
         l_transactionsFilteredByAccount = Transaction.filterByAccount(
-            self.l_transactions, dc_activeAccounts)
+            l_transactions, dc_activeAccounts)
 
         # Combine filters
-        self.l_transactionsFiltered = Transaction.listAnd(l_transactionsFilteredByCategory,\
+        l_transactionsFiltered = Transaction.listAnd(l_transactionsFilteredByCategory,\
                                                             l_transactionsFilteredByDate,\
                                                             l_transactionsFilteredByDescription,\
                                                             l_transactionsFilteredByAccount)
+        return [
+            l_transactions[i] for i in range(len(l_transactions))
+            if l_transactionsFiltered[i]
+        ]
 
-        self.fillTransactionListStore()
+    def filterButtonCallBack(self, widget):
+        self.fillTransactionListStore(
+            self.filterTransactionList(self.l_transactions))
 
     def readFilterBox(self):
 

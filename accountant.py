@@ -11,6 +11,7 @@
 #     - Plots
 #        - balance vs time (continue in plotTotalButtonCallback by first plotting just transaction amount over time)
 #        - the amount of the filtered transactions vs time
+#     - The start and end dates must be set after reading the file
 
 #
 # GRAPHICAL INTERFACE:

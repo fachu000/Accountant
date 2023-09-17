@@ -14,44 +14,20 @@ ll_default_csv_files = [[
     'SAVINGS-NO'], ['../../data/CSV/creditCard.csv', 'UTF8', 'CREDIT_CARD-NO']]
 
 
-class Transaction:
-    """An object of this class describes a bank transaction."""
+class CsvProcessor:
 
-    lstr_categoryLabels = [
-        'FUN', 'FOOD', 'CAR', 'MUSIC', 'FAMILY', 'HOME', 'ANIMALS', 'WORK'
-    ]
-    lstr_accountLabels = ['CREDIT_CARD-NO', 'CHECKING-NO', 'SAVINGS-NO']
+    @classmethod
+    def isMe(cls, str_format):
+        return str_format == cls.str_format
 
-    def __init__(self):
-        self.d_date = []
-        self.str_description = ''
-        self.d_interestDate = []
-        self.d_purchaseDate = []
-        self.f_amount = 0  # >0 means incoming to the account
-        self.str_account = ''
-        self.str_category = ''
-        self.str_comment = ''
 
-    def readTransactionFromString(str_csv, str_format):
-        #        return Transaction.readTransactionFromStringCreditCardFormat(str_csv)
-        str1 = 'Date;Description;Interest date;In;Out;'
-        str2 = ' "DATE";"DESCRIPTION";"PURCHASE DATE";"AMOUNT";'
+class OldCheckingCsvProcessor(CsvProcessor):
 
-        if str_format == str1:
-            trans = Transaction.readTransactionFromStringStandardFormat(
-                str_csv)
-        elif str_format[1:-1] == str2[1:-1]:
-            trans = Transaction.readTransactionFromStringCreditCardFormat(
-                str_csv)
-        else:
-            print('ERROR: invalid format')
-            print('format:"', str_format, '"')
-            print('format:"', str2, '"')
-            quit()
+    str_format = 'Date;Description;Interest date;In;Out;'
 
-        return trans
+    @staticmethod
+    def getTransactionFromString(str_csv):
 
-    def readTransactionFromStringStandardFormat(str_csv):
         tran = Transaction()
         lstr_fields = str_csv.split(';')
 
@@ -86,11 +62,71 @@ class Transaction:
 
         return tran
 
-    def readTransactionFromStringCreditCardFormat(str_csv):
+
+class CheckingCsvProcessor(CsvProcessor):
+    str_format = "ï»¿Dato;Beskrivelse;Rentedato;Inn;Ut;Til konto;Fra konto;"
+
+    @staticmethod
+    def getTransactionFromString(str_csv):
+
+        if str_csv == '\n':
+            return None
+
+        tran = Transaction()
+        lstr_fields = str_csv.split(';')
+
+        # Remove quotes
+        lstr_fields = [f[1:-1] for f in lstr_fields]
+
+        # date
+        str_date = lstr_fields[0]
+        if len(str_date) > 0:
+            tran.d_date = Transaction.dateStrToDate(str_date)
+
+        # description
+        tran.str_description = lstr_fields[1]
+
+        # interest date
+        str_interestDate = lstr_fields[2]
+        if len(str_interestDate) > 0:
+            tran.d_interestDate = Transaction.dateStrToDate(str_interestDate)
+
+        # Amount in
+        str_inAmount = lstr_fields[3].replace(',', '.')
+        if str_inAmount:
+            f_in = float(str_inAmount)
+        else:
+            f_in = 0
+
+        # Amount out
+        str_outAmount = lstr_fields[4].replace(',', '.')
+        if str_outAmount:
+            f_out = float(str_outAmount)
+        else:
+            f_out = 0
+
+        tran.f_amount = f_in + f_out
+
+        tran.toAccount = lstr_fields[5]
+        tran.fromAccount = lstr_fields[6]
+
+        return tran
+
+
+class CreditCardCsvProcessor(CsvProcessor):
+    str_format = ' "DATE";"DESCRIPTION";"PURCHASE DATE";"AMOUNT";'
+
+    @staticmethod
+    def isMe(str_format):
+        return str_format[1:-1] == CreditCardCsvProcessor.str_format[1:-1]
+
+    @staticmethod
+    def getTransactionFromString(str_csv):
+
         if len(str_csv) < 5:
-            return []
+            return None
         elif str_csv[0:len('"TOTAL"')] == '"TOTAL"':
-            return []
+            return None
 
         tran = Transaction()
 
@@ -118,14 +154,41 @@ class Transaction:
 
         return tran
 
+
+l_csvProcessors = [
+    CheckingCsvProcessor, OldCheckingCsvProcessor, CreditCardCsvProcessor
+]
+
+
+class Transaction:
+    """An object of this class describes a bank transaction."""
+
+    lstr_categoryLabels = [
+        'FUN', 'FOOD', 'CAR', 'MUSIC', 'FAMILY', 'HOME', 'ANIMALS', 'WORK'
+    ]
+    lstr_accountLabels = ['CREDIT_CARD-NO', 'CHECKING-NO', 'SAVINGS-NO']
+
+    def __init__(self):
+        self.d_date = []
+        self.str_description = ''
+        self.d_interestDate = []
+        self.d_purchaseDate = []
+        self.f_amount = 0  # >0 means incoming to the account
+        self.str_account = ''
+        self.str_category = ''
+        self.str_comment = ''
+        self.fromAccount = ''  # str in order to hold an IBAN
+        self.toAccount = ''  # str in order to hold an IBAN
+
     def dateStrToDate(str_date):
 
         if not str_date[0].isdigit():
             print('str_date = ', str_date)
-            print('ERROR: invalid format of time field')
-            quit()
-        dt_out = date(int(str_date[6:10]), int(str_date[3:5]),
-                      int(str_date[0:2]))
+            raise TypeError('invalid format of time field')
+
+        dt_out = date(year=int(str_date[6:10]),
+                      month=int(str_date[3:5]),
+                      day=int(str_date[0:2]))
         return dt_out
 
     def print(self):
@@ -141,6 +204,14 @@ class Transaction:
         print('------------------------------')
 
     def readTransactionListFromCSVFile(ll_csv_files=ll_default_csv_files):
+
+        def findCsvProcessor(str_format):
+            for p in l_csvProcessors:
+                if p.isMe(str_format):
+                    return p
+
+            raise ValueError(f"Unrecognized format {str_format}.")
+
         l_transactions = []
 
         for l_file in ll_csv_files:
@@ -149,12 +220,14 @@ class Transaction:
                 str_format = input.readline()[
                     0:-1]  # first line gives the format
 
+                p = findCsvProcessor(str_format)
+
                 for myline in input:
-                    tran = Transaction.readTransactionFromString(
-                        myline, str_format)
-                    if tran:
-                        tran.str_account = l_file[2]
-                        l_transactions.append(tran)
+                    tran = p.getTransactionFromString(myline)
+                    if tran is None:
+                        continue
+                    tran.str_account = l_file[2]
+                    l_transactions.append(tran)
 
         return Transaction.sortTransactionList(l_transactions)
 
@@ -173,31 +246,31 @@ class Transaction:
 
         return l_transactions
 
-    def combineListsOfTransactions(l_master, l_slave):
-        """The nodes of l_slave are added to the list l_master if a node with 
-        the same dates, amount, and description does not already exist"""
+    def combineListsOfTransactions(l_existing, l_possibly_new):
+        """A list is created with the nodes of l_existing and the nodes in
+        l_possibly new that are not in l_existing. """
 
+        def inList(t, l_t):
+            # Returns True iff transaction `t` is in the list `l_t`.
+            for refTrans in l_t:
+                if (t.d_date == refTrans.d_date) \
+                   and (t.f_amount == refTrans.f_amount)\
+                   and (t.d_interestDate == refTrans.d_interestDate)\
+                   and (t.d_purchaseDate == refTrans.d_purchaseDate)\
+                   and (t.str_description == refTrans.str_description):
+
+                    return True
+            return False
+
+        l_out = [t for t in l_existing]
         num_newTransactions = 0
-        for slaveTransaction in l_slave:
-            b_matchingTransaction = False
-            for masterTransaction in l_master:
-                if (slaveTransaction.d_date == masterTransaction.d_date) \
-                   and (slaveTransaction.f_amount == masterTransaction.f_amount)\
-                   and (slaveTransaction.d_interestDate == masterTransaction.d_interestDate)\
-                   and (slaveTransaction.d_purchaseDate == masterTransaction.d_purchaseDate)\
-                   and (slaveTransaction.str_description == masterTransaction.str_description):
-
-                    # print('matching transaction:')
-                    # masterTransaction.print()
-                    b_matchingTransaction = True
-                    break
-
-            if not b_matchingTransaction:
-                l_master.append(slaveTransaction)
+        for t in l_possibly_new:
+            if not inList(t, l_out):
+                l_out.append(t)
                 num_newTransactions = num_newTransactions + 1
 
-        l_master = Transaction.sortTransactionList(l_master)
-        return num_newTransactions
+        print('new transactions = ', num_newTransactions)
+        return Transaction.sortTransactionList(l_out)
 
     def sortTransactionList(l_transactions):
 
@@ -236,7 +309,10 @@ class Transaction:
 
     def firstAndLastDates(l_transactions):
 
-        firstDate = l_transactions[1].d_date
+        if len(l_transactions) == 0:
+            return date(2000, 1, 1), date(2000, 1, 1)
+
+        firstDate = l_transactions[0].d_date
         lastDate = l_transactions[-1].d_date
         for transaction in l_transactions:
             if transaction.d_date < firstDate:
@@ -362,7 +438,7 @@ class Transaction:
         plt.figure(1)
         for indCategory in range(0, len(dc_activeCategories)):
 
-            plt.subplot(i_numRows, i_numCols, indCategory)
+            plt.subplot(i_numRows, i_numCols, indCategory + 1)
             plt.plot(t2, np.cos(2 * np.pi * t2), 'r--')
             print(dc_activeCategories)
             print(indCategory)
