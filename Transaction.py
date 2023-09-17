@@ -9,10 +9,12 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.ticker import FuncFormatter
 
-ll_default_csv_files = [[
-    '../../data/CSV/checking.csv', 'ISO-8859-1', 'CHECKING-NO'
-], ['../../data/CSV/savings.csv', 'ISO-8859-1',
-    'SAVINGS-NO'], ['../../data/CSV/creditCard.csv', 'UTF8', 'CREDIT_CARD-NO']]
+ll_default_csv_files = [['../../data/CSV/checking.csv', 'UTF8', 'CHECKING-NO'],
+                        ['../../data/CSV/savings.csv', 'UTF8', 'SAVINGS-NO'],
+                        [
+                            '../../data/CSV/creditCard.csv', 'UTF8',
+                            'CREDIT_CARD-NO'
+                        ]]
 
 
 class CsvProcessor:
@@ -65,7 +67,8 @@ class OldCheckingCsvProcessor(CsvProcessor):
 
 
 class CheckingCsvProcessor(CsvProcessor):
-    str_format = "ï»¿Dato;Beskrivelse;Rentedato;Inn;Ut;Til konto;Fra konto;"
+    #str_format = "ï»¿Dato;Beskrivelse;Rentedato;Inn;Ut;Til konto;Fra konto;"
+    str_format = '\ufeffDato;Beskrivelse;Rentedato;Inn;Ut;Til konto;Fra konto;'
 
     @staticmethod
     def getTransactionFromString(str_csv):
@@ -114,12 +117,12 @@ class CheckingCsvProcessor(CsvProcessor):
         return tran
 
 
-class CreditCardCsvProcessor(CsvProcessor):
+class OldCreditCardCsvProcessor(CsvProcessor):
     str_format = ' "DATE";"DESCRIPTION";"PURCHASE DATE";"AMOUNT";'
 
     @staticmethod
     def isMe(str_format):
-        return str_format[1:-1] == CreditCardCsvProcessor.str_format[1:-1]
+        return str_format[1:-1] == OldCreditCardCsvProcessor.str_format[1:-1]
 
     @staticmethod
     def getTransactionFromString(str_csv):
@@ -156,8 +159,62 @@ class CreditCardCsvProcessor(CsvProcessor):
         return tran
 
 
+class CreditCardCsvProcessor(CsvProcessor):
+    str_format = '\ufeff"Kjøpsdato";"Posteringsdato";"Beskrivelse";"Beløp"'
+
+    @staticmethod
+    def isMe(str_format):
+        return str_format == CreditCardCsvProcessor.str_format
+
+    @staticmethod
+    def getTransactionFromString(str_csv):
+
+        def dateStrToDate(str_date):
+
+            if not str_date[0].isdigit():
+                print('str_date = ', str_date)
+                raise TypeError('invalid format of time field')
+
+            dt_out = date(year=int(str_date[0:4]),
+                          month=int(str_date[5:7]),
+                          day=int(str_date[8:10]))
+            return dt_out
+
+        # if len(str_csv) < 5:
+        #     return None
+        # elif str_csv[0:len('"TOTAL"')] == '"TOTAL"':
+        #     return None
+
+        tran = Transaction()
+
+        lstr_fields = str_csv.split(';')
+
+        # date
+        str_date = lstr_fields[1].split('"')[1]
+        if len(str_date) > 0:
+            tran.d_date = dateStrToDate(str_date)
+
+        # description
+        tran.str_description = lstr_fields[2].split('"')[1]
+
+        # Purchase date
+        str_purchaseDate = lstr_fields[0].split('"')[1]
+        if len(str_purchaseDate) > 0:
+            tran.d_purchaseDate = dateStrToDate(str_purchaseDate)
+
+        # Amount out
+        str_outAmount = lstr_fields[3].split('"')[1].replace(',', '.')
+        if str_outAmount:
+            tran.f_amount = float(str_outAmount)
+        else:
+            tran.f_amount = 0
+
+        return tran
+
+
 l_csvProcessors = [
-    CheckingCsvProcessor, OldCheckingCsvProcessor, CreditCardCsvProcessor
+    CheckingCsvProcessor, OldCheckingCsvProcessor, OldCreditCardCsvProcessor,
+    CreditCardCsvProcessor
 ]
 
 

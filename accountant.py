@@ -49,15 +49,16 @@ from gi.repository import Gtk
 # load default list
 #l_transactions = Transaction.loadTransactionList('../../data/test-list.pk')
 #l_transactions = Transaction.loadTransactionList('../data/default.pk')
-l_transactions = Transaction.loadTransactionList(
-    '/Users/dani/Downloads/assignment_test_auto.pk')
-#l_transactions = []
+# l_transactions = Transaction.loadTransactionList(
+#     '/Users/dani/Downloads/assignment_test_auto.pk')
+l_transactions = []
 
 print('here we go')
 
 win = AccountantGUI(l_transactions)
 #win = AccountantGUI([])
 win.connect("delete-event", Gtk.main_quit)
+
 win.show_all()
 Gtk.main()
 quit()

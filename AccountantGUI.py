@@ -287,7 +287,7 @@ class AccountantGUI(Gtk.Window):
         else:
             str_interestDate = ''
         str_description = transaction.str_description
-        str_amount = str(transaction.f_amount)
+        str_amount = format(transaction.f_amount, ",.0f")
         str_category = transaction.str_category
         str_account = transaction.str_account
         str_comment = transaction.str_comment
@@ -547,9 +547,14 @@ class DialogExample(Gtk.Dialog):
 
         self.set_default_size(150, 100)
 
-        label = Gtk.Label(
-            'Do you want to read the files checking.csv, savings.csv' +
-            ' and creditCard.csv from the folder data/CSV?')
+        label = Gtk.Label("""
+            Do you want to read the files checking.csv, savings.csv
+            and creditCard.csv from the folder data/CSV?'
+                          
+            After that, you can use Auto Assign to assign categories
+            based on previous assignments.
+                          
+                          """)
 
         box = self.get_content_area()
         box.add(label)
