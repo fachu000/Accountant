@@ -414,8 +414,8 @@ class Transaction:
 
         for indTransaction in range(0, len(l_transactions)):
             if l_transactions[indTransaction].str_category:
-                if dc_activeCategories[
-                        l_transactions[indTransaction].str_category]:
+                if dc_activeCategories[Transaction.stripCategory(
+                        l_transactions[indTransaction].str_category)]:
                     l_transactionsFilteredByCategory[indTransaction] = True
                 else:
                     l_transactionsFilteredByCategory[indTransaction] = False
@@ -426,6 +426,11 @@ class Transaction:
                     l_transactionsFilteredByCategory[indTransaction] = False
 
         return l_transactionsFilteredByCategory
+
+    @staticmethod
+    def stripCategory(category):
+        """ Removes the [auto] part at the end of a category name"""
+        return category.split(' [')[0]
 
     def filterByDescription(l_transactions, str_description):
         l_transactionsFilteredByDescription = [True] * len(l_transactions)
