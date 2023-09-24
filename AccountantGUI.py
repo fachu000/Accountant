@@ -14,6 +14,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
 
 font_size = 18
+treeview_height = 500
 
 
 class AccountantGUI(Gtk.Window):
@@ -21,98 +22,108 @@ class AccountantGUI(Gtk.Window):
     def __init__(self, l_transactions, default_folder=None):
 
         self.default_folder = default_folder
-
         Transaction.checkList(l_transactions)
-        Gtk.Window.__init__(self, title="Accountant GUI")
-        self.set_border_width(10)
         self.l_transactions = l_transactions
         self.clearTransactionFilter()
+
+        Gtk.Window.__init__(self, title="Accountant GUI")
+        self.set_border_width(10)
 
         # box containing all
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add(self.box)
 
         #Grid with the upper buttons
-        self.grid = Gtk.Grid()
-        self.grid.set_column_homogeneous(True)
-        self.grid.set_row_homogeneous(True)
+        def make_grid_with_upper_buttons():
+            grid = Gtk.Grid()
+            grid.set_column_homogeneous(True)
+            grid.set_row_homogeneous(True)
+
+            # Buttons
+            saveButton = Gtk.Button('Save Transactions as')
+            saveButton.connect("clicked", self.saveButtonCallback)
+            loadButton = Gtk.Button('Load Transactions')
+            loadButton.connect("clicked", self.loadButtonCallback)
+            appendFromCSVFileButton = Gtk.Button('Append From CSV')
+            appendFromCSVFileButton.connect(
+                "clicked", self.appendFromCSVFileButtonCallback)
+            autoAssignButton = Gtk.Button('Auto Assign')
+            autoAssignButton.connect("clicked", self.autoAssignButtonCallback)
+            addCommentButton = Gtk.Button('Add Comment')
+            addCommentButton.connect("clicked", self.addCommentButtonCallback)
+
+            grid.attach(saveButton, 0, 0, 2, 1)
+            grid.attach(loadButton, 2, 0, 2, 1)
+            grid.attach(appendFromCSVFileButton, 4, 0, 2, 1)
+            grid.attach(autoAssignButton, 6, 0, 2, 1)
+            grid.attach(addCommentButton, 8, 0, 2, 1)
+
+            return grid
+
+        self.grid = make_grid_with_upper_buttons()
         self.box.pack_start(self.grid, True, True, 0)
 
-        # Buttons
-        saveButton = Gtk.Button('Save Transactions as')
-        saveButton.connect("clicked", self.saveButtonCallback)
-        loadButton = Gtk.Button('Load Transactions')
-        loadButton.connect("clicked", self.loadButtonCallback)
-        appendFromCSVFileButton = Gtk.Button('Append From CSV')
-        appendFromCSVFileButton.connect("clicked",
-                                        self.appendFromCSVFileButtonCallback)
-        autoAssignButton = Gtk.Button('Auto Assign')
-        autoAssignButton.connect("clicked", self.autoAssignButtonCallback)
-        addCommentButton = Gtk.Button('Add Comment')
-        addCommentButton.connect("clicked", self.addCommentButtonCallback)
+        def make_treeview():
+            # TreeView  for transactions
+            self.transaction_liststore = Gtk.ListStore(str, str, str, str, str,
+                                                       str, str, str, str, int)
+            self.fillTransactionListStore()
 
-        self.grid.attach(saveButton, 0, 0, 2, 1)
-        self.grid.attach(loadButton, 2, 0, 2, 1)
-        self.grid.attach(appendFromCSVFileButton, 4, 0, 2, 1)
-        self.grid.attach(autoAssignButton, 6, 0, 2, 1)
-        self.grid.attach(addCommentButton, 8, 0, 2, 1)
+            self.transaction_treeview = Gtk.TreeView.new_with_model(
+                self.transaction_liststore)
+            self.select = self.transaction_treeview.get_selection()
+            self.selectedTransactionTreeIter = None
+            self.select.connect("changed", self.on_tree_selection_changed)
 
-        # TreeView  for transactions
-        self.transaction_liststore = Gtk.ListStore(str, str, str, str, str,
-                                                   str, str, str, str, int)
-        self.fillTransactionListStore()
+            for i, column_title in enumerate([
+                    "Date", "Amount", "Category", "Description", "Account",
+                    "Comment", "Purchase date", "Interest date", "Twin Index"
+            ]):
+                renderer = Gtk.CellRendererText()
+                font_desc = Pango.FontDescription()
+                font_desc.set_size(font_size *
+                                   Pango.SCALE)  # Set font size to 12 points
+                renderer.set_property("font-desc", font_desc)
 
-        self.transaction_treeview = Gtk.TreeView.new_with_model(
-            self.transaction_liststore)
-        self.select = self.transaction_treeview.get_selection()
-        self.selectedTransactionTreeIter = None
-        self.select.connect("changed", self.on_tree_selection_changed)
+                column = Gtk.TreeViewColumn(column_title, renderer, text=i)
+                column.set_sort_column_id(i)
+                self.transaction_treeview.append_column(column)
 
-        for i, column_title in enumerate([
-                "Date", "Amount", "Category", "Description", "Account",
-                "Comment", "Purchase date", "Interest date", "Twin Index"
-        ]):
-            renderer = Gtk.CellRendererText()
-            font_desc = Pango.FontDescription()
-            font_desc.set_size(font_size *
-                               Pango.SCALE)  # Set font size to 12 points
-            renderer.set_property("font-desc", font_desc)
+            transaction_scrollableTreelist = Gtk.ScrolledWindow()
+            transaction_scrollableTreelist.set_vexpand(True)
+            transaction_scrollableTreelist.add(self.transaction_treeview)
+            transaction_scrollableTreelist.set_size_request(
+                -1, treeview_height)
+            return transaction_scrollableTreelist
 
-            column = Gtk.TreeViewColumn(column_title, renderer, text=i)
-            column.set_sort_column_id(i)
-            self.transaction_treeview.append_column(column)
+        self.transaction_scrollableTreelist = make_treeview()
+        #self.grid.attach(self.transaction_scrollableTreelist, 0, 1, 12, 10)
+        self.box.pack_start(self.transaction_scrollableTreelist, True, True, 0)
 
-        self.transaction_scrollableTreelist = Gtk.ScrolledWindow()
-        self.transaction_scrollableTreelist.set_vexpand(True)
-        self.transaction_scrollableTreelist.add(self.transaction_treeview)
+        def make_grid_with_assignment_buttons():
+            grid = Gtk.Grid()
+            grid.set_column_homogeneous(True)
+            grid.set_row_homogeneous(True)
+            # buttons to assign transactions to categories
+            self.l_categoryAssignmentButtons = list()
+            for categoryLabel, shortcut_key in Transaction.lstr_categoryLabels:
+                button = Gtk.Button(categoryLabel + ' (' + shortcut_key + ')')
+                button.connect("clicked",
+                               self.categoryAssignmentButtonCallback)
+                self.l_categoryAssignmentButtons.append(button)
 
-        self.grid.attach(self.transaction_scrollableTreelist, 0, 1, 12, 10)
+            num_cols = 500
+            for i, button in enumerate(self.l_categoryAssignmentButtons[1:]):
+                if i < num_cols:
+                    grid.attach(button, 2 * i, 0, 2, 1)
+                else:
+                    self.grid.attach_next_to(
+                        button, self.l_categoryAssignmentButtons[i - num_cols],
+                        Gtk.PositionType.BOTTOM, 1, 1)
+            return grid
 
-        # buttons to assign transactions to categories
-        self.l_categoryAssignmentButtons = list()
-        for categoryLabel, shortcut_key in Transaction.lstr_categoryLabels:
-            button = Gtk.Button(categoryLabel + ' (' + shortcut_key + ')')
-            self.l_categoryAssignmentButtons.append(button)
-            button.connect("clicked", self.categoryAssignmentButtonCallback)
-
-        self.grid.attach_next_to(self.l_categoryAssignmentButtons[0],
-                                 self.transaction_scrollableTreelist,
-                                 Gtk.PositionType.BOTTOM, 1, 1)
-        # for i, button in enumerate(self.l_categoryAssignmentButtons[1:]):
-        #     self.grid.attach_next_to(button,
-        #                              self.l_categoryAssignmentButtons[i],
-        #                              Gtk.PositionType.RIGHT, 1, 1)
-
-        num_cols = 5
-        for i, button in enumerate(self.l_categoryAssignmentButtons[1:]):
-            if i < num_cols:
-                self.grid.attach_next_to(button,
-                                         self.l_categoryAssignmentButtons[i],
-                                         Gtk.PositionType.RIGHT, 1, 1)
-            else:
-                self.grid.attach_next_to(
-                    button, self.l_categoryAssignmentButtons[i - num_cols],
-                    Gtk.PositionType.BOTTOM, 1, 1)
+        self.grid_with_assignment_buttons = make_grid_with_assignment_buttons()
+        self.box.pack_start(self.grid_with_assignment_buttons, True, True, 0)
 
         ################# FILTER BOX #############################
         filterFrame = Gtk.Frame()

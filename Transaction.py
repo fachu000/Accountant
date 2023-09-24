@@ -228,7 +228,7 @@ class Transaction:
     # Pairs of (label, shortcut key)
     lstr_categoryLabels = [
         ('TRANS', 't'),  # Transfers between accounts or cash operations
-        ('BODY', 'b'),  # Includes also clothes
+        ('BODY', 'b'),  # Includes also clothes, haircuts...
         ('FOOD_HOME', 'o'),
         ('FOOD_REST', 'r'),  # Food and drinks in restarurants/bars
         ('HOME', 'h'),  # Including construction works
