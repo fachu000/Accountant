@@ -55,7 +55,7 @@ l_transactions = Transaction.loadTransactionList('../../data/assignments.pk')
 
 print('here we go')
 
-win = AccountantGUI(l_transactions)
+win = AccountantGUI(l_transactions, default_folder='../../data/')
 #win = AccountantGUI([])
 win.connect("delete-event", Gtk.main_quit)
 

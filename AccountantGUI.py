@@ -16,7 +16,9 @@ from gi.repository import Gtk, Gdk
 
 class AccountantGUI(Gtk.Window):
 
-    def __init__(self, l_transactions):
+    def __init__(self, l_transactions, default_folder=None):
+
+        self.default_folder = default_folder
 
         Transaction.checkList(l_transactions)
         Gtk.Window.__init__(self, title="Accountant GUI")
@@ -35,9 +37,9 @@ class AccountantGUI(Gtk.Window):
         self.box.pack_start(self.grid, True, True, 0)
 
         # Buttons
-        saveButton = Gtk.Button('Save')
+        saveButton = Gtk.Button('Save Transactions as')
         saveButton.connect("clicked", self.saveButtonCallback)
-        loadButton = Gtk.Button('Load Transaction File')
+        loadButton = Gtk.Button('Load Transactions')
         loadButton.connect("clicked", self.loadButtonCallback)
         appendFromCSVFileButton = Gtk.Button('Append From CSV')
         appendFromCSVFileButton.connect("clicked",
@@ -325,9 +327,10 @@ class AccountantGUI(Gtk.Window):
 
         dialog = Gtk.FileChooserDialog(
             "Please choose a .pk file", self, Gtk.FileChooserAction.SAVE,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN,
+            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_SAVE,
              Gtk.ResponseType.OK))
 
+        dialog.set_current_folder(self.default_folder)
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             print("File selected: " + dialog.get_filename())
@@ -345,6 +348,7 @@ class AccountantGUI(Gtk.Window):
             "Please choose a .pk file", self, Gtk.FileChooserAction.OPEN,
             (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN,
              Gtk.ResponseType.OK))
+        dialog.set_current_folder(self.default_folder)
 
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
@@ -460,16 +464,32 @@ class AccountantGUI(Gtk.Window):
 
         self.l_transactions[
             selectedTransactionIndex].str_category = str_category
+        self.updateTransactionInListStore(selectedTransactionIndex)
 
         if auto:
-            for t in self.l_transactions:
+            for ind_t, t in enumerate(self.l_transactions):
                 if t.str_description == self.l_transactions[
                         selectedTransactionIndex].str_description and (
                             (t.str_category == '')
                             or Transaction.isAutoCategory(t.str_category)):
                     t.str_category = Transaction.makeAutoCategory(str_category)
 
-        self.updateStoreRows()
+                    # Update the list store if needed
+                    self.updateTransactionInListStore(ind_t)
+
+        #self.updateStoreRows()
+
+    def updateTransactionInListStore(self, ind_t):
+        """ 
+        Args:
+
+        `ind_t`: index of the transaction in self.l_transactions
+
+        """
+        if self.l_transactionsFiltered[ind_t]:
+            ind_in_store_row = int(np.sum(self.l_transactionsFiltered[:ind_t]))
+            assert self.transaction_liststore[ind_in_store_row][-1] == ind_t
+            self.updateStoreRow(ind_in_store_row)
 
     def plotCumsumButtonCallback(self, widget):
 

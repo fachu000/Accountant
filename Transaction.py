@@ -234,6 +234,7 @@ class Transaction:
         ('CAR', 'c'),
         ('MUSIC', 'm'),
         ('WORK', 'w'),
+        ('CHARITY', 'y'),
         ('FUN', 'f'),
     ]
     lstr_accountLabels = ['CREDIT_CARD-NO', 'CHECKING-NO', 'SAVINGS-NO']
