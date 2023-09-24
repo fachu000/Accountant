@@ -226,8 +226,16 @@ class Transaction:
     """An object of this class describes a bank transaction."""
 
     # Pairs of (label, shortcut key)
-    lstr_categoryLabels = [('FUN', 'f'), ('FOOD', 'o'), ('CAR', 'c'),
-                           ('MUSIC', 'm'), ('HOME', 'h'), ('WORK', 'w')]
+    lstr_categoryLabels = [
+        ('BODY', 'b'),
+        ('FOOD_HOME', 'o'),
+        ('FOOD_REST', 'r'),  # Food and drinks in restarurants/bars
+        ('HOME', 'h'),  # Including construction works
+        ('CAR', 'c'),
+        ('MUSIC', 'm'),
+        ('WORK', 'w'),
+        ('FUN', 'f'),
+    ]
     lstr_accountLabels = ['CREDIT_CARD-NO', 'CHECKING-NO', 'SAVINGS-NO']
 
     def __init__(self):
@@ -247,6 +255,15 @@ class Transaction:
         # coffee in the day has id 0, the second 1, etc. This field is 0 if the
         # transaction has no twin.
         self.twinInd = None
+
+    @staticmethod
+    def checkList(l_trans):
+        l_categories = [c[0] for c in Transaction.lstr_categoryLabels] + [""]
+        for t in l_trans:
+            if Transaction.stripCategory(t.str_category) not in l_categories:
+                raise ValueError(
+                    f"Unrecognized category '{t.str_category}' of Transaction {t}. Please add that category to Transaction.lstr_categoryLabels. Afterwards you can filter by that category, change the resulting transactions to another category, and remove the category."
+                )
 
     def dateStrToDate(str_date):
 

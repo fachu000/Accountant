@@ -18,6 +18,7 @@ class AccountantGUI(Gtk.Window):
 
     def __init__(self, l_transactions):
 
+        Transaction.checkList(l_transactions)
         Gtk.Window.__init__(self, title="Accountant GUI")
         self.set_border_width(10)
         self.l_transactions = l_transactions
@@ -462,8 +463,10 @@ class AccountantGUI(Gtk.Window):
 
         if auto:
             for t in self.l_transactions:
-                if t.str_category == '' and t.str_description == self.l_transactions[
-                        selectedTransactionIndex].str_description:
+                if t.str_description == self.l_transactions[
+                        selectedTransactionIndex].str_description and (
+                            (t.str_category == '')
+                            or Transaction.isAutoCategory(t.str_category)):
                     t.str_category = Transaction.makeAutoCategory(str_category)
 
         self.updateStoreRows()
