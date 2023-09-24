@@ -1,3 +1,4 @@
+import csv
 from datetime import datetime, timedelta, time, date
 import math as math
 import matplotlib.pyplot as plt
@@ -77,10 +78,13 @@ class CheckingCsvProcessor(CsvProcessor):
             return None
 
         tran = Transaction()
-        lstr_fields = str_csv.split(';')
 
-        # Remove quotes
-        lstr_fields = [f[1:-1] for f in lstr_fields]
+        #lstr_fields = str_csv.split(';') lstr_fields = [f[1:-1] for f in
+        #        lstr_fields]
+        #
+        # The following method is needed because sometimes there are semicolons
+        # inside quotes in the description field.
+        lstr_fields = next(csv.reader([str_csv], delimiter=';', quotechar='"'))
 
         # date
         str_date = lstr_fields[0]
@@ -187,27 +191,27 @@ class CreditCardCsvProcessor(CsvProcessor):
 
         tran = Transaction()
 
-        lstr_fields = str_csv.split(';')
+        # Split str_cs by ";" but only those that are not inside quotes.
+
+        #lstr_fields = str_csv.split(';')
+        lstr_fields = next(csv.reader([str_csv], delimiter=';', quotechar='"'))
 
         # date
-        str_date = lstr_fields[1].split('"')[1]
+        str_date = lstr_fields[1]
         if len(str_date) > 0:
             tran.d_date = dateStrToDate(str_date)
 
         # description
-        tran.str_description = lstr_fields[2].split('"')[1]
+        tran.str_description = lstr_fields[2]
 
         # Purchase date
-        str_purchaseDate = lstr_fields[0].split('"')[1]
+        str_purchaseDate = lstr_fields[0]
         if len(str_purchaseDate) > 0:
             tran.d_purchaseDate = dateStrToDate(str_purchaseDate)
 
         # Amount out
-        str_outAmount = lstr_fields[3].split('"')[1].replace(',', '.')
-        if str_outAmount:
-            tran.f_amount = float(str_outAmount)
-        else:
-            tran.f_amount = 0
+        str_outAmount = lstr_fields[3].replace(',', '.')
+        tran.f_amount = float(str_outAmount)
 
         return tran
 
@@ -268,6 +272,9 @@ class Transaction:
         print('TWIN IND: ', self.twinInd)
         print('------------------------------')
 
+    def __str__(self):
+        return f"[{self.d_date},{self.str_account},{self.f_amount}] {self.str_description}"
+
     @staticmethod
     def setTwinInd(l_trans):
         """Sets the twinInd field of each transaction in l_transactions. 
@@ -280,8 +287,11 @@ class Transaction:
         if len(l_trans) == 0:
             return
 
-        # Sort the list by date. This ensures that twins are consecutive.
-        l_trans = sorted(l_trans, key=lambda transaction: transaction.d_date)
+        # Sort the list so that twins are consecutive.
+        l_trans = sorted(
+            l_trans,
+            key=lambda t:
+            (t.d_date, t.str_description, t.f_amount, t.str_account))
 
         l_trans[0].twinInd = 0
         if len(l_trans) == 1:
@@ -341,26 +351,125 @@ class Transaction:
 
         return l_transactions
 
-    def combineListsOfTransactions(l_existing, l_possibly_new):
+    def combineListsOfTransactions(l_existing,
+                                   l_possibly_new,
+                                   skip_overlapping_time=True):
         """A list is created with the nodes of l_existing and the nodes in
         l_possibly new that are not in l_existing. """
 
         def inList(t, l_t):
             # Returns True iff transaction `t` is in the list `l_t`.
+            return findInList(t, l_t) is not None
+
+        def findInList(t, l_t):
+            # Returns the first transaction in l_t that is equal to `t`.
             for refTrans in l_t:
                 if t.equals(refTrans):
-                    return True
-            return False
+                    return refTrans
+            return None
 
-        Transaction.setTwinInd(l_existing)
-        Transaction.setTwinInd(l_possibly_new)
+        if skip_overlapping_time:
+            # Sometimes, a given transaction appears in `l_existing` and in
+            # `l_possibly_new` with a different description. This is due to
+            # changes in the export system used by the bank. Thus, counting
+            # twins is not enough to avoid duplicates.
+            #
+            # What we do here is to remove transactions from `l_possibly_new`
+            # whose date is before the last date in the sublist of l_existing
+            # that contains transactions with the same str_account as
+            # l_possibly_new.
+            #
+            # In this way, for each account, only the last day in l_existing
+            # needs to be merged. This is needed as the last day of a csv file
+            # may not be complete.
 
-        l_out = [t for t in l_existing]
-        num_newTransactions = 0
-        for t in l_possibly_new:
-            if not inList(t, l_out):
-                l_out.append(t)
-                num_newTransactions = num_newTransactions + 1
+            # 1. Make a dict with the last day for each account in l_existing
+            d_lastDate = {}
+            for t in l_existing:
+                if t.str_account not in d_lastDate:
+                    d_lastDate[t.str_account] = t.d_date
+                else:
+                    if t.d_date > d_lastDate[t.str_account]:
+                        d_lastDate[t.str_account] = t.d_date
+
+            # 2. Remove transactions from l_possibly_new whose date is before
+            # the last date for the corresponding account in l_existing.
+            l_to_remove = []
+            for t in l_possibly_new:
+                if t.str_account in d_lastDate:
+                    if t.d_date < d_lastDate[t.str_account]:
+                        l_to_remove.append(t)
+            for t in l_to_remove:
+                l_possibly_new.remove(t)
+
+            Transaction.setTwinInd(l_existing)
+            Transaction.setTwinInd(l_possibly_new)
+
+            # 3. Remove transactions from l_possibly_new that took place in the
+            #    dates in d_lastDate and that are already in l_existing.
+            l_to_remove = []
+            for t in l_existing:
+                if t.d_date == d_lastDate[t.str_account]:
+                    # Two cases: l_possibly_new starts on day
+                    # d_lastDate[t.str_account] for this account. In this case,
+                    # t must be in l_possibly_new, since the first day of a CSV
+                    # file is assumed complete.
+                    t_match = findInList(t, l_possibly_new)
+                    if t_match is None:
+                        # In this case, if there are transactions in the same
+                        # account and with the same date in l_possibly_new, it
+                        # means that `t` is in l_possibly_new with a different
+                        # description (or other field). Merging thus requires
+                        # manual intervention.
+                        for tpn in l_possibly_new:
+                            if (tpn.d_date == t.d_date) and (tpn.str_account
+                                                             == t.str_account):
+                                print(
+                                    f"Transaction T:={t}, already in the data base, is not "
+                                    +
+                                    "present in the data being imported, despite the latter "
+                                    +
+                                    "contains transactions for the date of the former and the same "
+                                    + "account, namely:")
+                                l_candidates = [
+                                    tpn2 for tpn2 in l_possibly_new
+                                    if (tpn2.d_date == t.d_date) and (
+                                        tpn2.str_account == t.str_account)
+                                ]
+                                for ind in range(len(l_candidates)):
+                                    print(f"{ind}: {l_candidates[ind]}")
+                                print(
+                                    "This means that either the imported files have an "
+                                    +
+                                    "incomplete first day, which is not allowed, or "
+                                    +
+                                    "transaction T is correspondso to one of the transactions "
+                                    + "in the above list.")
+                                ind_selected = input(
+                                    f"Which one is the version of T? (enter 0-{len(l_candidates)-1})"
+                                )
+                                l_to_remove.append(
+                                    l_candidates[int(ind_selected)])
+                                break
+
+                    else:
+                        l_to_remove.append(t_match)
+            for t in l_to_remove:
+                l_possibly_new.remove(t)
+
+            num_newTransactions = len(l_possibly_new)
+            l_out = l_existing + l_possibly_new
+
+        else:
+            Transaction.setTwinInd(l_existing)
+            Transaction.setTwinInd(l_possibly_new)
+
+            l_out = [t for t in l_existing]
+            num_newTransactions = 0
+            for t in l_possibly_new:
+                if not inList(t, l_out):
+                    l_out.append(t)
+                    num_newTransactions = num_newTransactions + 1
 
         print('new transactions = ', num_newTransactions)
         return Transaction.sortTransactionList(l_out)
@@ -593,6 +702,7 @@ class Transaction:
         plt.grid()
         plt.title("Cumsum of the filtered transactions")
         plt.ylabel("Cumsum [NOK]")
+        print("Total amount = ", l_total[-1])
         plt.show()
         return
 

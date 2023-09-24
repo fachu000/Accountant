@@ -1,3 +1,4 @@
+import numpy as np
 from Transaction import Transaction
 from datetime import datetime, timedelta, time, date
 
@@ -512,6 +513,9 @@ class AccountantGUI(Gtk.Window):
     def filterButtonCallBack(self, widget=None):
         self.filterTransactionList()
         self.fillTransactionListStore()
+        print(
+            f'Total of filtered transactions: {np.sum([t.f_amount for t,f in zip(self.l_transactions,self.l_transactionsFiltered) if f])}'
+        )
 
     def readFilterBox(self):
 
@@ -548,11 +552,14 @@ class DialogExample(Gtk.Dialog):
         self.set_default_size(150, 100)
 
         label = Gtk.Label("""
-            Do you want to read the files checking.csv, savings.csv
-            and creditCard.csv from the folder data/CSV?'
+            Do you want to read the files checking.csv, savings.csv and
+            creditCard.csv from the folder data/CSV?'
                           
-            After that, you can use Auto Assign to assign categories
-            based on previous assignments.
+            Note that the first day in the CSV files must contain all the
+            transactions of that day. 
+                          
+            After that, you can use Auto Assign to assign categories based on
+            previous assignments.
                           
                           """)
 

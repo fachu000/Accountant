@@ -48,10 +48,10 @@ from gi.repository import Gtk
 
 # load default list
 #l_transactions = Transaction.loadTransactionList('../../data/test-list.pk')
-#l_transactions = Transaction.loadTransactionList('../data/default.pk')
+l_transactions = Transaction.loadTransactionList('../../data/accounting2.pk')
 # l_transactions = Transaction.loadTransactionList(
 #     '/Users/dani/Downloads/assignment_test_auto.pk')
-l_transactions = []
+#l_transactions = []
 
 print('here we go')
 
