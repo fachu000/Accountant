@@ -3,7 +3,7 @@ from Transaction import Transaction
 from datetime import datetime, timedelta, time, date
 
 # When the ListStore is sorted by pressing a column header, the
-# TreeIter that point to a row change as the row changes its
+# TreeIter that points to a row change as the row changes its
 # position. Thus, to know what is the transaction in
 # self.l_transactions associated with a certain row, we use the last
 # column of the ListStore, which contains now the index.
@@ -204,10 +204,10 @@ class AccountantGUI(Gtk.Window):
     def on_key_press_event(self, widget, event):
         """Note: Return true if you want to prevent the default callbacks from
         running. """
-        print("Key press on widget: ", widget)
-        print("          Modifiers: ", event.state)
-        print("      Key val, name: ", event.keyval,
-              Gdk.keyval_name(event.keyval))
+        # print("Key press on widget: ", widget)
+        # print("          Modifiers: ", event.state)
+        # print("      Key val, name: ", event.keyval,
+        #       Gdk.keyval_name(event.keyval))
 
         if self.descriptionFilterEntry.is_focus():
             if event.keyval == Gdk.KEY_Return:
@@ -424,8 +424,8 @@ class AccountantGUI(Gtk.Window):
 
     def on_tree_selection_changed(self, selection):
         model, treeiter = selection.get_selected()
-        if treeiter is not None:
-            print("You selected", model[treeiter][3])
+        # if treeiter is not None:
+        #     print("You selected", model[treeiter][3])
         self.selectedTransactionTreeIter = treeiter
 
     def categoryAssignmentButtonCallback(self, widget):
@@ -488,8 +488,18 @@ class AccountantGUI(Gtk.Window):
         """
         if self.l_transactionsFiltered[ind_t]:
             ind_in_store_row = int(np.sum(self.l_transactionsFiltered[:ind_t]))
-            assert self.transaction_liststore[ind_in_store_row][-1] == ind_t
-            self.updateStoreRow(ind_in_store_row)
+            if self.transaction_liststore[ind_in_store_row][-1] == ind_t:
+                self.updateStoreRow(ind_in_store_row)
+            else:
+                # The place of the transaction has changed in the list store as
+                # a result of column sorting. We need to find the new place of
+                # the transaction in the list store.
+                for ind_in_store_row in range(0,
+                                              len(self.transaction_liststore)):
+                    if self.transaction_liststore[ind_in_store_row][
+                            -1] == ind_t:
+                        self.updateStoreRow(ind_in_store_row)
+                        break
 
     def plotCumsumButtonCallback(self, widget):
 

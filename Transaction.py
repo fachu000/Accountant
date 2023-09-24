@@ -227,6 +227,7 @@ class Transaction:
 
     # Pairs of (label, shortcut key)
     lstr_categoryLabels = [
+        ('TRANS', 't'),  # Transfers between accounts or cash operations
         ('BODY', 'b'),
         ('FOOD_HOME', 'o'),
         ('FOOD_REST', 'r'),  # Food and drinks in restarurants/bars
@@ -236,6 +237,7 @@ class Transaction:
         ('WORK', 'w'),
         ('CHARITY', 'y'),
         ('FUN', 'f'),
+        ('TRAVEL', 'v'),  # Non-work related travel (buses, trains, hotels...)
     ]
     lstr_accountLabels = ['CREDIT_CARD-NO', 'CHECKING-NO', 'SAVINGS-NO']
 
@@ -366,8 +368,16 @@ class Transaction:
 
         with open(str_filename, 'rb') as input:
             l_transactions = pickle.load(input)
+        return Transaction.sortTransactionList(l_transactions)
 
-        return l_transactions
+    @staticmethod
+    def sortTransactionList(l_transactions):
+
+        return sorted(l_transactions,
+                      key=lambda transaction:
+                      (transaction.d_date, transaction.str_description,
+                       transaction.f_amount, transaction.str_account),
+                      reverse=True)
 
     def combineListsOfTransactions(l_existing,
                                    l_possibly_new,
@@ -491,13 +501,6 @@ class Transaction:
 
         print('new transactions = ', num_newTransactions)
         return Transaction.sortTransactionList(l_out)
-
-    def sortTransactionList(l_transactions):
-
-        l_transactions = sorted(l_transactions,
-                                key=lambda transaction: transaction.d_date)
-
-        return l_transactions
 
     def autoAssignTransactionsToCategory(l_transactions):
 
