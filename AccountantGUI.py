@@ -11,7 +11,9 @@ from datetime import datetime, timedelta, time, date
 import gi
 
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, Pango
+
+font_size = 18
 
 
 class AccountantGUI(Gtk.Window):
@@ -71,6 +73,11 @@ class AccountantGUI(Gtk.Window):
                 "Comment", "Purchase date", "Interest date", "Twin Index"
         ]):
             renderer = Gtk.CellRendererText()
+            font_desc = Pango.FontDescription()
+            font_desc.set_size(font_size *
+                               Pango.SCALE)  # Set font size to 12 points
+            renderer.set_property("font-desc", font_desc)
+
             column = Gtk.TreeViewColumn(column_title, renderer, text=i)
             column.set_sort_column_id(i)
             self.transaction_treeview.append_column(column)
@@ -82,7 +89,6 @@ class AccountantGUI(Gtk.Window):
         self.grid.attach(self.transaction_scrollableTreelist, 0, 1, 12, 10)
 
         # buttons to assign transactions to categories
-        #self.l_categoryAssignmentButtons = list()
         self.l_categoryAssignmentButtons = list()
         for categoryLabel, shortcut_key in Transaction.lstr_categoryLabels:
             button = Gtk.Button(categoryLabel + ' (' + shortcut_key + ')')
@@ -92,10 +98,21 @@ class AccountantGUI(Gtk.Window):
         self.grid.attach_next_to(self.l_categoryAssignmentButtons[0],
                                  self.transaction_scrollableTreelist,
                                  Gtk.PositionType.BOTTOM, 1, 1)
+        # for i, button in enumerate(self.l_categoryAssignmentButtons[1:]):
+        #     self.grid.attach_next_to(button,
+        #                              self.l_categoryAssignmentButtons[i],
+        #                              Gtk.PositionType.RIGHT, 1, 1)
+
+        num_cols = 5
         for i, button in enumerate(self.l_categoryAssignmentButtons[1:]):
-            self.grid.attach_next_to(button,
-                                     self.l_categoryAssignmentButtons[i],
-                                     Gtk.PositionType.RIGHT, 1, 1)
+            if i < num_cols:
+                self.grid.attach_next_to(button,
+                                         self.l_categoryAssignmentButtons[i],
+                                         Gtk.PositionType.RIGHT, 1, 1)
+            else:
+                self.grid.attach_next_to(
+                    button, self.l_categoryAssignmentButtons[i - num_cols],
+                    Gtk.PositionType.BOTTOM, 1, 1)
 
         ################# FILTER BOX #############################
         filterFrame = Gtk.Frame()
@@ -217,6 +234,9 @@ class AccountantGUI(Gtk.Window):
                 return False  # the user is typing on the filter box
 
         for cat in Transaction.lstr_categoryLabels:
+            if event.state & Gdk.ModifierType.CONTROL_MASK and event.keyval == Gdk.KEY_n:
+                self.selectNextTransaction()
+                return True
             if event.keyval == Gdk.keyval_from_name(cat[1]):
                 self.assignSelectedTransactionToCategory(cat[0], auto=True)
                 self.selectNextTransaction()

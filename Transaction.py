@@ -228,7 +228,7 @@ class Transaction:
     # Pairs of (label, shortcut key)
     lstr_categoryLabels = [
         ('TRANS', 't'),  # Transfers between accounts or cash operations
-        ('BODY', 'b'),
+        ('BODY', 'b'),  # Includes also clothes
         ('FOOD_HOME', 'o'),
         ('FOOD_REST', 'r'),  # Food and drinks in restarurants/bars
         ('HOME', 'h'),  # Including construction works
@@ -237,7 +237,9 @@ class Transaction:
         ('WORK', 'w'),
         ('CHARITY', 'y'),
         ('FUN', 'f'),
-        ('TRAVEL', 'v'),  # Non-work related travel (buses, trains, hotels...)
+        ('TRAVEL',
+         'v'),  # Non-work related travel (buses, trains, hotels, parking...)
+        ('UNKNOWN', 'u'),
     ]
     lstr_accountLabels = ['CREDIT_CARD-NO', 'CHECKING-NO', 'SAVINGS-NO']
 
