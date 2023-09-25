@@ -687,22 +687,8 @@ class Transaction:
 
         plt.gca().yaxis.set_major_formatter(FuncFormatter(with_commas))
 
-    def plotCumsumOverTime(l_transactions):
-        # ,
-        #                   start_date_lim=None,
-        #                   end_date_lim=None):
-        # """
-        # start_date_lim and end_date_lim are datetime.date objects that limit the
-        # x-axis.
-
-        # """
-
-        # # Default start and end dates
-        # if start_date_lim is None or end_date_lim is None:
-        #     _start, _end = Transaction.firstAndLastDates(l_transactions)
-        #     start_date_lim = _start if start_date_lim is None else start_date_lim
-        #     end_date_lim = _end if end_date_lim is None else end_date_lim
-
+    def _plotCumsumCurve(l_transactions, label=None, negate=False):
+        l_transactions = sorted(l_transactions, key=lambda t: t.d_date)
         l_timeAxis = [None] * (len(l_transactions) + 1)
         l_timeAxis[0] = l_transactions[0].d_date
         l_total = [None] * (len(l_transactions) + 1)
@@ -716,16 +702,22 @@ class Transaction:
         dates = [d.strftime('%Y/%m/%d') for d in l_timeAxis]
         x = [dt.datetime.strptime(d, '%Y/%m/%d').date() for d in dates]
         y = l_total  # range(len(x)) # many thanks to Kyss Tao for setting me straight here
+        if negate:
+            y = [-t for t in y]
+        plt.plot(x, y, marker='.', label=label)
 
+    @staticmethod
+    def plotCumsumOverTime(l_transactions):
+
+        Transaction._plotCumsumCurve(l_transactions)
         Transaction._setYaxisCommaFormatting()
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d'))
         #plt.gca().xaxis.set_major_locator(mdates.MonthLocator())
-        plt.plot(x, y, marker='.')
         plt.gcf().autofmt_xdate()
         plt.grid()
         plt.title("Cumsum of the filtered transactions")
         plt.ylabel("Cumsum [NOK]")
-        print("Total amount = ", l_total[-1])
+
         plt.show()
         return
 
@@ -740,40 +732,63 @@ class Transaction:
         start_date, end_date = Transaction.firstAndLastDates(l_transactions)
         num_years = end_date.year - start_date.year + 1
 
-        # Obtain totals per month
-        def get_monthly_partials(l_transactions):
-            l_totals = [[0] * 12 for _ in range(num_years)]
-            for t in l_transactions:
-                year = t.d_date.year - start_date.year
-                month = t.d_date.month - 1
-                l_totals[year][month] += t.f_amount
+        def plot_monthly_totals(l_transactions, l_cat):
 
-            return l_totals
+            def get_monthly_partials(l_transactions):
+                l_totals = [[0] * 12 for _ in range(num_years)]
+                for t in l_transactions:
+                    year = t.d_date.year - start_date.year
+                    month = t.d_date.month - 1
+                    l_totals[year][month] += t.f_amount
+
+                return l_totals
+
+            l_months = [
+                date(year=year, month=month, day=1)
+                for year in range(start_date.year, end_date.year + 1)
+                for month in range(1, 13)
+            ]
+
+            for indCategory in range(0, len(l_cat)):
+                l_transactions_now = [
+                    t for t in l_transactions if Transaction.stripCategory(
+                        t.str_category) == l_cat[indCategory]
+                ]
+                l_partials = get_monthly_partials(l_transactions_now)
+                plt.plot(l_months, [-t for y in l_partials for t in y],
+                         marker='.',
+                         label=l_cat[indCategory]
+                         if l_cat[indCategory] else 'No Category')
+
+            Transaction._setYaxisCommaFormatting()
+            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m'))
+            plt.title("Outgoing amount [NOK/month]")
+            #plt.title(l_cat[indCategory])
+            plt.gcf().autofmt_xdate()
+            plt.legend()
+            plt.grid()
+
+        def plot_cumsums(l_transactions, l_cat):
+            for cat in l_cat:
+                Transaction._plotCumsumCurve([
+                    t for t in l_transactions
+                    if Transaction.stripCategory(t.str_category) == cat
+                ],
+                                             label=cat,
+                                             negate=True)
 
         plt.figure(1)
-        l_months = [
-            date(year=year, month=month, day=1)
-            for year in range(start_date.year, end_date.year + 1)
-            for month in range(1, 13)
-        ]
+        plt.subplot(121)
+        plot_monthly_totals(l_transactions, l_cat)
 
-        for indCategory in range(0, len(l_cat)):
-            l_transactions_now = [
-                t for t in l_transactions if Transaction.stripCategory(
-                    t.str_category) == l_cat[indCategory]
-            ]
-            l_partials = get_monthly_partials(l_transactions_now)
-            plt.plot(l_months, [-t for y in l_partials for t in y],
-                     marker='.',
-                     label=l_cat[indCategory]
-                     if l_cat[indCategory] else 'No Category')
-
+        plt.subplot(122)
+        plot_cumsums(l_transactions, l_cat)
         Transaction._setYaxisCommaFormatting()
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m'))
-        plt.ylabel("Outgoing amount [NOK/month]")
-        plt.title(l_cat[indCategory])
+        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%Y/%m/%d'))
         plt.gcf().autofmt_xdate()
-        plt.legend()
         plt.grid()
+        plt.title("Cumsum of outgoing amount")
+        plt.ylabel("Cumsum [NOK]")
+        plt.tight_layout()
 
         plt.show()
